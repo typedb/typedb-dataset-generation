@@ -122,13 +122,16 @@ class QueryBuilder:
             title: str,
             page_count: int,
             price: str,
-            stock: int,
             contributors: list[tuple[str, ContributorRole]],
             publisher_name: str,
             publication_year: int,
             publication_city: str,
-            isbn_10: str,
+            isbn_10: str | None,
+            stock: int | None,
     ) -> str:
+        if stock is None:
+            stock = self.random.randint(0, 20)
+
         query = " ".join((
             f"insert",
             f"$book isa {book_type.value};",
@@ -137,8 +140,10 @@ class QueryBuilder:
             f"$book has page-count {page_count};",
             f"$book has price {price};",
             f"$book has stock {stock};",
-            f"$book has isbn-10 '{isbn_10}';",
         ))
+
+        if isbn_10 is not None:
+            query += f"$book has isbn-10 '{isbn_10}';"
 
         for contributor in contributors:
             contributor_name = contributor[0]
@@ -195,12 +200,12 @@ class QueryBuilder:
             title: str,
             page_count: int,
             price: str,
-            stock: int,
             contributors: list[tuple[str, ContributorRole]],
             publisher_name: str,
             publication_year: int,
             publication_city: str,
             isbn_10: str = None,
+            stock: int = None,
     ) -> str:
         return self._book(
             BookType.PAPERBACK,
@@ -208,12 +213,12 @@ class QueryBuilder:
             title,
             page_count,
             price,
-            stock,
             contributors,
             publisher_name,
             publication_year,
             publication_city,
             isbn_10,
+            stock,
         )
 
     def hardback(
@@ -222,12 +227,12 @@ class QueryBuilder:
             title: str,
             page_count: int,
             price: str,
-            stock: int,
             contributors: list[tuple[str, ContributorRole]],
             publisher_name: str,
             publication_year: int,
             publication_city: str,
             isbn_10: str = None,
+            stock: int = None,
     ) -> str:
         return self._book(
             BookType.HARDBACK,
@@ -235,12 +240,12 @@ class QueryBuilder:
             title,
             page_count,
             price,
-            stock,
             contributors,
             publisher_name,
             publication_year,
             publication_city,
             isbn_10,
+            stock,
         )
 
     def ebook(
@@ -249,12 +254,12 @@ class QueryBuilder:
             title: str,
             page_count: int,
             price: str,
-            stock: int,
             contributors: list[tuple[str, ContributorRole]],
             publisher_name: str,
             publication_year: int,
             publication_city: str,
             isbn_10: str = None,
+            stock: int = None,
     ) -> str:
         return self._book(
             BookType.EBOOK,
@@ -262,12 +267,12 @@ class QueryBuilder:
             title,
             page_count,
             price,
-            stock,
             contributors,
             publisher_name,
             publication_year,
             publication_city,
             isbn_10,
+            stock,
         )
 
     def promotion(self, start_timestamp: str, end_timestamp: str, discount: str, book_isbn_13s: list[str]) -> str:
