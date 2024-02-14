@@ -105,12 +105,12 @@ class QueryBuilder:
     def city(self, name: str, parent_type: ParentPlaceType, parent_name: str) -> str:
         query = " ".join((
             f"match",
-            f"${parent_type} isa {parent_type};",
-            f"${parent_type} has name '{parent_name}';",
+            f"${parent_type.value} isa {parent_type.value};",
+            f"${parent_type.value} has name '{parent_name}';",
             f"insert",
             f"$city isa city;",
             f"$city has name '{name}';",
-            f"(location: ${parent_type}, located: $city) isa locating;",
+            f"(location: ${parent_type.value}, located: $city) isa locating;",
         ))
 
         return query
@@ -130,7 +130,7 @@ class QueryBuilder:
             stock: int | None,
     ) -> str:
         if stock is None:
-            stock = self.random.randint(0, 20)
+            stock = self._random.randint(0, 20)
 
         query = " ".join((
             f"insert",
