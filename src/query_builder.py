@@ -50,32 +50,32 @@ class QueryBuilder:
         self._order_count = 0
         self._random = Random(0)
 
-    def get_new_promotion_id(self) -> str:
+    def _get_new_promotion_id(self) -> str:
         assert self._promotion_count < 10 ** self._id_digits - 1
         self._promotion_count += 1
         return self._promotion_id_prefix + str(self._promotion_count).zfill(self._id_digits)
 
-    def get_random_promotion_id(self) -> str:
+    def _get_random_promotion_id(self) -> str:
         assert self._promotion_count > 0
         promotion_number = self._random.randint(1, self._promotion_count)
         return self._promotion_id_prefix + str(promotion_number).zfill(self._id_digits)
 
-    def get_new_user_id(self) -> str:
+    def _get_new_user_id(self) -> str:
         assert self._user_count < 10 ** self._id_digits - 1
         self._user_count += 1
         return self._user_id_prefix + str(self._user_count).zfill(self._id_digits)
 
-    def get_random_user_id(self) -> str:
+    def _get_random_user_id(self) -> str:
         assert self._user_count > 0
         user_number = self._random.randint(1, self._user_count)
         return self._user_id_prefix + str(user_number).zfill(self._id_digits)
 
-    def get_new_order_id(self) -> str:
+    def _get_new_order_id(self) -> str:
         assert self._order_count < 10 ** self._id_digits - 1
         self._order_count += 1
         return self._order_id_prefix + str(self._order_count).zfill(self._id_digits)
 
-    def get_random_order_id(self) -> str:
+    def _get_random_order_id(self) -> str:
         assert self._order_count > 0
         order_number = self._random.randint(1, self._order_count)
         return self._order_id_prefix + str(order_number).zfill(self._id_digits)
@@ -271,7 +271,7 @@ class QueryBuilder:
         )
 
     def promotion(self, start_timestamp: str, end_timestamp: str, discount: str, book_isbn_13s: list[str]) -> str:
-        promotion_id = self.get_new_promotion_id()
+        promotion_id = self._get_new_promotion_id()
 
         query = " ".join((
             f"insert",
@@ -296,7 +296,7 @@ class QueryBuilder:
         return query
 
     def user(self, name: str, birth_date: str, city_name) -> str:
-        user_id = self.get_new_user_id()
+        user_id = self._get_new_user_id()
 
         query = " ".join((
             f"match",
@@ -322,10 +322,10 @@ class QueryBuilder:
             books: list[tuple[str, int]],
             user_id: str = None,
     ) -> str:
-        order_id = self.get_new_order_id()
+        order_id = self._get_new_order_id()
 
         if user_id is None:
-            user_id = self.get_random_user_id()
+            user_id = self._get_random_user_id()
 
         query = " ".join((
             f"match",
@@ -387,7 +387,7 @@ class QueryBuilder:
 
     def review(self, score: int, execution_timestamp: str, book_isbn_13: str, user_id: str = None) -> str:
         if user_id is None:
-            user_id = self.get_random_user_id()
+            user_id = self._get_random_user_id()
 
         query = " ".join((
             f"match",
@@ -407,7 +407,7 @@ class QueryBuilder:
 
     def login(self, success: bool, execution_timestamp: str, user_id: str = None) -> str:
         if user_id is None:
-            user_id = self.get_random_user_id()
+            user_id = self._get_random_user_id()
 
         query = " ".join((
             f"match",
