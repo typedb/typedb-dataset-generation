@@ -2,6 +2,12 @@ from enum import Enum
 from random import Random
 
 
+class TimestampFormat(Enum):
+    DATE = "YYYY-MM-DD"
+    DATETIME = "YYYY-MM-DDTHH:MM:SS"
+    PRECISE_DATETIME = "YYYY-MM-DDTHH:MM:SS.FFF"
+
+
 class BookType(Enum):
     PAPERBACK = "paperback"
     HARDBACK = "hardback"
@@ -43,12 +49,14 @@ class QueryBuilder:
     _promotion_id_prefix = "P"
     _order_id_prefix = "O"
     _id_digits = 4
+    _random_login_fail_percentage = 10
 
     def __init__(self):
         self._promotion_count = 0
         self._user_count = 0
         self._order_count = 0
         self._random = Random(0)
+        self._isbn_13s = list()
 
     def _get_new_promotion_id(self) -> str:
         assert self._promotion_count < 10 ** self._id_digits - 1
@@ -79,6 +87,60 @@ class QueryBuilder:
         assert self._order_count > 0
         order_number = self._random.randint(1, self._order_count)
         return self._order_id_prefix + str(order_number).zfill(self._id_digits)
+
+    def _get_random_isbn_13(self) -> str:
+        assert len(self._isbn_13s) > 0
+        return self._random.choice(self._isbn_13s)
+
+    def _get_random_timestamp(
+            self,
+            timestamp_format: TimestampFormat,
+            start_year: int = 2020,
+            end_year: int = 2023
+    ) -> str:
+        year = self._random.randint(start_year, end_year)
+        month = self._random.randint(1, 12)
+
+        if month == 2:
+            if year % 4:
+                if year % 100:
+                    if year % 400:
+                        max_day = 29
+                    else:
+                        max_day = 28
+                else:
+                    max_day = 29
+            else:
+                max_day = 28
+        elif month in (4, 6, 9, 11):
+            max_day = 30
+        else:
+            max_day = 31
+
+        day = self._random.randint(1, max_day)
+        hour = self._random.randint(0, 23)
+        minute = self._random.randint(0, 59)
+        second = self._random.randint(0, 59)
+        milliseconds = self._random.randint(0, 999)
+        date = f"{str(year).zfill(4)}-{str(month).zfill(2)}-{str(day).zfill(2)}"
+        time = f"{str(hour).zfill(2)}:{str(minute).zfill(2)}:{str(second).zfill(2)}"
+
+        match timestamp_format:
+            case TimestampFormat.DATE:
+                return date
+            case TimestampFormat.DATETIME:
+                return f"{date}T{time}"
+            case TimestampFormat.PRECISE_DATETIME:
+                return f"{date}T{time}.{str(milliseconds).zfill(3)}"
+
+    def _get_random_order_status(self) -> OrderStatus:
+        return self._random.choice(tuple(status for status in OrderStatus))
+
+    def _get_random_login_success(self) -> bool:
+        if self._random.randint(1, 100) <= self._random_login_fail_percentage:
+            return False
+        else:
+            return True
 
     def country(self, name: str) -> str:
         query = " ".join((
@@ -129,6 +191,8 @@ class QueryBuilder:
             isbn_10: str | None,
             stock: int | None,
     ) -> str:
+        self._isbn_13s.append(isbn_13)
+
         if stock is None:
             stock = self._random.randint(0, 20)
 
@@ -300,7 +364,10 @@ class QueryBuilder:
 
         return query
 
-    def user(self, name: str, birth_date: str, city_name) -> str:
+    def user(self, name: str, city_name: str, birth_date: str = None) -> str:
+        if birth_date is None:
+            birth_date = self._get_random_timestamp(TimestampFormat.DATE, start_year=1950, end_year=1999)
+
         user_id = self._get_new_user_id()
 
         query = " ".join((
@@ -319,15 +386,34 @@ class QueryBuilder:
 
     def order(
             self,
-            status: OrderStatus,
-            execution_timestamp: str,
             address_street: str,
             city_name: str,
             courier_name: str,
-            books: list[tuple[str, int]],
+            order_lines: list[tuple[str, int]] | list[int],
+            status: OrderStatus = None,
+            execution_timestamp: str = None,
             user_id: str = None,
     ) -> str:
         order_id = self._get_new_order_id()
+
+        if type(order_lines) is list[int]:
+            book_quantities = dict()
+
+            for quantity in order_lines:
+                book_isbn_13 = self._get_random_isbn_13()
+
+                if book_isbn_13 in book_quantities.keys():
+                    book_quantities[book_isbn_13] += quantity
+                else:
+                    book_quantities[book_isbn_13] = quantity
+
+            order_lines = [(book_isbn_13, line_quantity) for book_isbn_13, line_quantity in book_quantities.items()]
+
+        if status is None:
+            status = self._get_random_order_status()
+
+        if execution_timestamp is None:
+            execution_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME)
 
         if user_id is None:
             user_id = self._get_random_user_id()
@@ -373,9 +459,9 @@ class QueryBuilder:
             f"(delivered: $order, deliverer: $courier, destination: $address) isa delivery;",
         ))
 
-        for book in books:
-            book_isbn_13 = book[0]
-            book_quantity = book[1]
+        for line in order_lines:
+            book_isbn_13 = line[0]
+            line_quantity = line[1]
 
             query += " " + " ".join((
                 f"match",
@@ -385,12 +471,18 @@ class QueryBuilder:
                 f"$book has isbn-13 '{book_isbn_13}';",
                 f"insert",
                 f"$line (order: $order, item: $book) isa order-line;",
-                f"$line has quantity {book_quantity};",
+                f"$line has quantity {line_quantity};",
             ))
 
         return query
 
-    def review(self, score: int, execution_timestamp: str, book_isbn_13: str, user_id: str = None) -> str:
+    def review(self, score: int, execution_timestamp: str = None, book_isbn_13: str = None, user_id: str = None) -> str:
+        if execution_timestamp is None:
+            execution_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME)
+
+        if book_isbn_13 is None:
+            book_isbn_13 = self._get_random_isbn_13()
+
         if user_id is None:
             user_id = self._get_random_user_id()
 
@@ -410,7 +502,13 @@ class QueryBuilder:
 
         return query
 
-    def login(self, success: bool, execution_timestamp: str, user_id: str = None) -> str:
+    def login(self, success: bool = None, execution_timestamp: str = None, user_id: str = None) -> str:
+        if success is None:
+            success = self._get_random_login_success()
+
+        if execution_timestamp is None:
+            execution_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME)
+
         if user_id is None:
             user_id = self._get_random_user_id()
 
