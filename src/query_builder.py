@@ -50,6 +50,7 @@ class QueryBuilder:
     _order_id_prefix = "O"
     _id_digits = 4
     _random_login_fail_percentage = 10
+    _courier_names = ("UPS", "FedEx", "DHL")
 
     def __init__(self):
         self._promotion_count = 0
@@ -141,6 +142,9 @@ class QueryBuilder:
             return False
         else:
             return True
+
+    def _get_random_courier_name(self):
+        return self._random.choice(self._courier_names)
 
     def country(self, name: str) -> str:
         query = " ".join((
@@ -388,9 +392,9 @@ class QueryBuilder:
             self,
             address_street: str,
             city_name: str,
-            courier_name: str,
             order_lines: list[tuple[str, int]] | list[int],
             status: OrderStatus = None,
+            courier_name: str = None,
             execution_timestamp: str = None,
             user_id: str = None,
     ) -> str:
@@ -411,6 +415,9 @@ class QueryBuilder:
 
         if status is None:
             status = self._get_random_order_status()
+
+        if courier_name is None:
+            courier_name = self._get_random_courier_name()
 
         if execution_timestamp is None:
             execution_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME)
