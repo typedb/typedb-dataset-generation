@@ -160,7 +160,7 @@ queries = [
         "The Complete Calvin and Hobbes",
         1451,
         "128.71",
-        [("Watterson, Bill", ContributorRole.AUTHOR), ("Watterson, Bill", ContributorRole.EDITOR)],
+        [("Watterson, Bill", ContributorRole.AUTHOR), ("Watterson, Bill", ContributorRole.ILLUSTRATOR)],
         "Andrews McMeel Publishing",
         2005,
         "Kansas City",
@@ -258,7 +258,7 @@ queries = [
     query_builder.user("Cameron Osborne", "Austin"),  # "U0002"
     query_builder.user("Keyla Pineda", "Newark"),  # "U0003"
     query_builder.user("Lorenzo Nixon", "Seattle"),  # "U0004"
-    query_builder.user("Kelvin Martinez", "Boston"),  # "U0005"
+    query_builder.user("Xavier Martinez", "Boston"),  # "U0005"
     query_builder.user("Giovanni Beard", "Santa Fe"),  # "U0006"
     query_builder.user("Skyler Townsend", "Toronto"),  # "U0007"
     query_builder.user("Alia Hartman", "Bristol"),  # "U0008"
@@ -293,7 +293,7 @@ queries = [
     query_builder.order("786 Lake View Street", "Sacramento", [1], user_id="U0005"),
     query_builder.order("8503 Second Street", "New York City", [2], user_id="U0003"),
     query_builder.order("8503 Second Street", "New York City", [1], user_id="U0003"),
-    query_builder.order("826 Vermont Avenue", "Albuquerque", [1], user_id="U0004"),
+    query_builder.order("826 Vermont Avenue", "Kansas City", [1], user_id="U0004"),
     query_builder.order("984 Williams Street", "Los Angeles", [1], user_id="U0001"),
     query_builder.order("984 Williams Street", "Los Angeles", [1, 1], user_id="U0001"),
     query_builder.order("20 Ridge Lane", "Quebec City", [1], user_id="U0007"),
