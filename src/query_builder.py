@@ -46,28 +46,16 @@ class OrderStatus(Enum):
 
 class QueryBuilder:
     _user_id_prefix = "U"
-    _promotion_id_prefix = "P"
     _order_id_prefix = "O"
     _id_digits = 4
     _random_login_fail_percentage = 10
     _courier_names = ("UPS", "FedEx", "DHL")
 
     def __init__(self):
-        self._promotion_count = 0
         self._user_count = 0
         self._order_count = 0
         self._random = Random(0)
         self._isbn_13s = list()
-
-    def _get_new_promotion_id(self) -> str:
-        assert self._promotion_count < 10 ** self._id_digits - 1
-        self._promotion_count += 1
-        return self._promotion_id_prefix + str(self._promotion_count).zfill(self._id_digits)
-
-    def _get_random_promotion_id(self) -> str:
-        assert self._promotion_count > 0
-        promotion_number = self._random.randint(1, self._promotion_count)
-        return self._promotion_id_prefix + str(promotion_number).zfill(self._id_digits)
 
     def _get_new_user_id(self) -> str:
         assert self._user_count < 10 ** self._id_digits - 1
@@ -343,13 +331,12 @@ class QueryBuilder:
             stock,
         )
 
-    def promotion(self, start_timestamp: str, end_timestamp: str, discount: str, book_isbn_13s: list[str]) -> str:
-        promotion_id = self._get_new_promotion_id()
+    def promotion(self, name: str, start_timestamp: str, end_timestamp: str, discount: str, book_isbn_13s: list[str]) -> str:
 
         query = " ".join((
             f"""insert""",
             f"""$promotion isa promotion;""",
-            f"""$promotion has id "{promotion_id}";""",
+            f"""$promotion has name "{name}";""",
             f"""$promotion has start-timestamp {start_timestamp};""",
             f"""$promotion has end-timestamp {end_timestamp};""",
             f"""$promotion has discount {discount};""",
@@ -361,7 +348,7 @@ class QueryBuilder:
                 f"""$book isa book;""",
                 f"""$book has isbn-13 "{isbn_13}";""",
                 f"""$promotion isa promotion;""",
-                f"""$promotion has id "{promotion_id}";""",
+                f"""$promotion has name "{name}";""",
                 f"""insert""",
                 f"""(promotion: $promotion, included: $book) isa promotion-inclusion;""",
             ))
