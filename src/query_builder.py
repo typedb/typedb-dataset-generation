@@ -135,16 +135,16 @@ class QueryBuilder:
         return self._random.choice(self._courier_names)
 
     def country(self, name: str) -> str:
-        query = " ".join((
+        queries = "# country\n" + " ".join((
             f"""insert""",
             f"""$country isa country;""",
             f"""$country has name "{name}";""",
         ))
 
-        return query
+        return queries
 
     def state(self, name: str, country_name: str) -> str:
-        query = " ".join((
+        queries = "# state\n" + " ".join((
             f"""match""",
             f"""$country isa country;""",
             f"""$country has name "{country_name}";""",
@@ -154,10 +154,10 @@ class QueryBuilder:
             f"""(location: $country, located: $state) isa locating;""",
         ))
 
-        return query
+        return queries
 
     def city(self, name: str, parent_type: ParentPlaceType, parent_name: str) -> str:
-        query = " ".join((
+        queries = "# city\n" + " ".join((
             f"""match""",
             f"""${parent_type.value} isa {parent_type.value};""",
             f"""${parent_type.value} has name "{parent_name}";""",
@@ -167,7 +167,7 @@ class QueryBuilder:
             f"""(location: ${parent_type.value}, located: $city) isa locating;""",
         ))
 
-        return query
+        return queries
 
     def _book(
             self,
@@ -188,7 +188,7 @@ class QueryBuilder:
         if stock is None:
             stock = self._random.randint(0, 20)
 
-        query = " ".join((
+        queries = "# book\n" + " ".join((
             f"""insert""",
             f"""$book isa {book_type.value};""",
             f"""$book has isbn-13 "{isbn_13}";""",
@@ -199,13 +199,13 @@ class QueryBuilder:
         ))
 
         if isbn_10 is not None:
-            query += f""" $book has isbn-10 "{isbn_10}";"""
+            queries += f""" $book has isbn-10 "{isbn_10}";"""
 
         for contributor in contributors:
             contributor_name = contributor[0]
             contributor_role = contributor[1]
 
-            query += " " + " ".join((
+            queries += "\n" + " ".join((
                 f"""match""",
                 f"""$contributor-type type contributor;""",
                 f"""not {{""",
@@ -215,6 +215,9 @@ class QueryBuilder:
                 f"""insert""",
                 f"""$contributor isa $contributor-type;""",
                 f"""$contributor has name "{contributor_name}";""",
+            ))
+
+            queries += "\n" + " ".join((
                 f"""match""",
                 f"""$book isa {book_type.value};""",
                 f"""$book has isbn-13 "{isbn_13}";""",
@@ -224,7 +227,7 @@ class QueryBuilder:
                 f"""(work: $book, {contributor_role.value}: $contributor) isa {contributor_role.relation_type()};""",
             ))
 
-        query += " " + " ".join((
+        queries += "\n" + " ".join((
             f"""match""",
             f"""$publisher-type type publisher;""",
             f"""not {{""",
@@ -234,6 +237,9 @@ class QueryBuilder:
             f"""insert""",
             f"""$publisher isa $publisher-type;""",
             f"""$publisher has name "{publisher_name}";""",
+        ))
+
+        queries += "\n" + " ".join((
             f"""match""",
             f"""$book isa {book_type.value};""",
             f"""$book has isbn-13 "{isbn_13}";""",
@@ -248,7 +254,7 @@ class QueryBuilder:
             f"""(location: $city, located: $publication) isa locating;""",
         ))
 
-        return query
+        return queries
 
     def paperback(
             self,
@@ -333,7 +339,7 @@ class QueryBuilder:
 
     def promotion(self, name: str, start_timestamp: str, end_timestamp: str, discount: str, book_isbn_13s: list[str]) -> str:
 
-        query = " ".join((
+        queries = "# promotion\n" + " ".join((
             f"""insert""",
             f"""$promotion isa promotion;""",
             f"""$promotion has name "{name}";""",
@@ -343,7 +349,7 @@ class QueryBuilder:
         ))
 
         for isbn_13 in book_isbn_13s:
-            query += " " + " ".join((
+            queries += "\n" + " ".join((
                 f"""match""",
                 f"""$book isa book;""",
                 f"""$book has isbn-13 "{isbn_13}";""",
@@ -353,7 +359,7 @@ class QueryBuilder:
                 f"""(promotion: $promotion, included: $book) isa promotion-inclusion;""",
             ))
 
-        return query
+        return queries
 
     def user(self, name: str, city_name: str, birth_date: str = None) -> str:
         if birth_date is None:
@@ -361,7 +367,7 @@ class QueryBuilder:
 
         user_id = self._get_new_user_id()
 
-        query = " ".join((
+        queries = "# user\n" + " ".join((
             f"""match""",
             f"""$city isa city;""",
             f"""$city has name "{city_name}";""",
@@ -373,7 +379,7 @@ class QueryBuilder:
             f"""(location: $city, located: $user) isa locating;""",
         ))
 
-        return query
+        return queries
 
     def order(
             self,
@@ -412,7 +418,7 @@ class QueryBuilder:
         if user_id is None:
             user_id = self._get_random_user_id()
 
-        query = " ".join((
+        queries = "# order\n" + " ".join((
             f"""match""",
             f"""$courier-type type courier;""",
             f"""not {{""",
@@ -422,6 +428,9 @@ class QueryBuilder:
             f"""insert""",
             f"""$courier isa $courier-type;""",
             f"""$courier has name "{courier_name}";""",
+        ))
+
+        queries += "\n" + " ".join((
             f"""match""",
             f"""$city isa city;""",
             f"""$city has name "{city_name}";""",
@@ -434,6 +443,9 @@ class QueryBuilder:
             f"""$address isa address;""",
             f"""$address has street "{address_street}";""",
             f"""(location: $city, located: $address) isa locating;""",
+        ))
+
+        queries += "\n" + " ".join((
             f"""match""",
             f"""$user isa user;""",
             f"""$user has id "{user_id}";""",
@@ -457,7 +469,7 @@ class QueryBuilder:
             book_isbn_13 = line[0]
             line_quantity = line[1]
 
-            query += " " + " ".join((
+            queries += "\n" + " ".join((
                 f"""match""",
                 f"""$order isa order;""",
                 f"""$order has id "{order_id}";""",
@@ -468,7 +480,7 @@ class QueryBuilder:
                 f"""$line has quantity {line_quantity};""",
             ))
 
-        return query
+        return queries
 
     def review(self, score: int, execution_timestamp: str = None, book_isbn_13: str = None, user_id: str = None) -> str:
         if execution_timestamp is None:
@@ -480,7 +492,7 @@ class QueryBuilder:
         if user_id is None:
             user_id = self._get_random_user_id()
 
-        query = " ".join((
+        queries = "# review\n" + " ".join((
             f"""match""",
             f"""$book isa book;""",
             f"""$book has isbn-13 "{book_isbn_13}";""",
@@ -494,7 +506,7 @@ class QueryBuilder:
             f"""$execution has timestamp {execution_timestamp};""",
         ))
 
-        return query
+        return queries
 
     def login(self, success: bool = None, execution_timestamp: str = None, user_id: str = None) -> str:
         if success is None:
@@ -506,7 +518,7 @@ class QueryBuilder:
         if user_id is None:
             user_id = self._get_random_user_id()
 
-        query = " ".join((
+        queries = "# login \n" + " ".join((
             f"""match""",
             f"""$user isa user;""",
             f"""$user has id "{user_id}";""",
@@ -517,4 +529,4 @@ class QueryBuilder:
             f"""$execution has timestamp {execution_timestamp};""",
         ))
 
-        return query
+        return queries
