@@ -347,7 +347,7 @@ class QueryBuilder:
             stock,
         )
 
-    def promotion(self, name: str, start_timestamp: str, end_timestamp: str, discount: str, book_isbn_13s: list[str]) -> str:
+    def promotion(self, name: str, start_timestamp: str, end_timestamp: str, promotion_inclusions: list[tuple[str, str]]) -> str:
 
         queries = "# promotion\n" + " ".join((
             f"""insert""",
@@ -355,18 +355,21 @@ class QueryBuilder:
             f"""$promotion has name "{name}";""",
             f"""$promotion has start-timestamp {start_timestamp};""",
             f"""$promotion has end-timestamp {end_timestamp};""",
-            f"""$promotion has discount {discount};""",
         ))
 
-        for isbn_13 in book_isbn_13s:
+        for inclusion in promotion_inclusions:
+            book_isbn_13 = inclusion[0]
+            discount = inclusion[1]
+
             queries += "\n" + " ".join((
                 f"""match""",
                 f"""$book isa book;""",
-                f"""$book has isbn-13 "{isbn_13}";""",
+                f"""$book has isbn-13 "{book_isbn_13}";""",
                 f"""$promotion isa promotion;""",
                 f"""$promotion has name "{name}";""",
                 f"""insert""",
-                f"""(promotion: $promotion, included: $book) isa promotion-inclusion;""",
+                f"""$inclusion (promotion: $promotion, included: $book) isa promotion-inclusion;""",
+                f"""$inclusion has discount {discount};""",
             ))
 
         return queries

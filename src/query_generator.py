@@ -395,6 +395,12 @@ queries = [
     query_builder.login(),
     query_builder.login(),
     query_builder.login(),
+    query_builder.promotion(
+        "Holiday Sale 2023",
+        "2023-12-01T00:00:00",
+        "2023-12-31T23:59:59",
+        [("9780575104419", "0.25"), ("9780060929794", "0.25"), ("9780375801679", "0.25"), ("9780008627843", "0.25"), ("9780500026557", "0.25")]
+    ),
 ]
 
 with open("src/queries.tql", "w") as output_file:
