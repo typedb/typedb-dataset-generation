@@ -47,6 +47,7 @@ class OrderStatus(Enum):
 class QueryBuilder:
     _user_id_prefix = "u"
     _order_id_prefix = "o"
+    _review_id_prefix = "r"
     _id_digits = 4
     _random_login_fail_percentage = 10
     _courier_names = ("UPS", "FedEx", "DHL")
@@ -54,6 +55,7 @@ class QueryBuilder:
     def __init__(self):
         self._user_count = 0
         self._order_count = 0
+        self._review_count = 0
         self._random = Random(0)
         self._isbn_13s = list()
 
@@ -76,6 +78,16 @@ class QueryBuilder:
         assert self._order_count > 0
         order_number = self._random.randint(1, self._order_count)
         return self._order_id_prefix + str(order_number).zfill(self._id_digits)
+
+    def _get_new_review_id(self) -> str:
+        assert self._review_count < 10 ** self._id_digits - 1
+        self._review_count += 1
+        return self._review_id_prefix + str(self._review_count).zfill(self._id_digits)
+
+    def _get_random_review_id(self) -> str:
+        assert self._review_count > 0
+        review_number = self._random.randint(1, self._review_count)
+        return self._review_id_prefix + str(review_number).zfill(self._id_digits)
 
     def _get_random_isbn_13(self) -> str:
         assert len(self._isbn_13s) > 0
@@ -347,11 +359,12 @@ class QueryBuilder:
             stock,
         )
 
-    def promotion(self, name: str, start_timestamp: str, end_timestamp: str, promotion_inclusions: list[tuple[str, str]]) -> str:
+    def promotion(self, code: str, name: str, start_timestamp: str, end_timestamp: str, promotion_inclusions: list[tuple[str, str]]) -> str:
 
         queries = "# promotion\n" + " ".join((
             f"""insert""",
             f"""$promotion isa promotion;""",
+            f"""$promotion has code "{code}";""",
             f"""$promotion has name "{name}";""",
             f"""$promotion has start-timestamp {start_timestamp};""",
             f"""$promotion has end-timestamp {end_timestamp};""",
@@ -496,6 +509,8 @@ class QueryBuilder:
         return queries
 
     def review(self, score: int, execution_timestamp: str = None, book_isbn_13: str = None, user_id: str = None) -> str:
+        review_id = self._get_new_review_id()
+
         if execution_timestamp is None:
             execution_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME)
 
@@ -513,6 +528,7 @@ class QueryBuilder:
             f"""$user has id "{user_id}";""",
             f"""insert""",
             f"""$review isa review;""",
+            f"""$review has id "{review_id}";""",
             f"""$review has score {score};""",
             f"""(review: $review, rated: $book) isa rating;""",
             f"""$execution (action: $review, executor: $user) isa action-execution;""",

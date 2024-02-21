@@ -396,6 +396,7 @@ queries = [
     query_builder.login(),
     query_builder.login(),
     query_builder.promotion(
+        "HOL23",
         "Holiday Sale 2023",
         "2023-12-01T00:00:00",
         "2023-12-31T23:59:59",
