@@ -45,8 +45,8 @@ class OrderStatus(Enum):
 
 
 class QueryBuilder:
-    _user_id_prefix = "U"
-    _order_id_prefix = "O"
+    _user_id_prefix = "u"
+    _order_id_prefix = "o"
     _id_digits = 4
     _random_login_fail_percentage = 10
     _courier_names = ("UPS", "FedEx", "DHL")

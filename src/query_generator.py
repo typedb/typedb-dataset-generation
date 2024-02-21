@@ -1,4 +1,4 @@
-from query_builder import QueryBuilder, BookType, ParentPlaceType, ContributorRole
+from query_builder import QueryBuilder, ParentPlaceType, ContributorRole
 
 query_builder = QueryBuilder()
 
@@ -254,54 +254,54 @@ queries = [
         "New York City",
         "0008627843",
     ),
-    query_builder.user("Kevin Morrison", "San Francisco"),  # "U0001"
-    query_builder.user("Cameron Osborne", "Austin"),  # "U0002"
-    query_builder.user("Keyla Pineda", "Newark"),  # "U0003"
-    query_builder.user("Lorenzo Nixon", "Seattle"),  # "U0004"
-    query_builder.user("Xavier Martinez", "Boston"),  # "U0005"
-    query_builder.user("Giovanni Beard", "Santa Fe"),  # "U0006"
-    query_builder.user("Skyler Townsend", "Toronto"),  # "U0007"
-    query_builder.user("Alia Hartman", "Bristol"),  # "U0008"
-    query_builder.user("Isaac Winters", "Montreal"),  # "U0009"
-    query_builder.user("Madison Everett", "Liverpool"),  # "U0010"
-    query_builder.order("14 South Street", "San Francisco", [2, 1], user_id="U0001"),
-    query_builder.order("14 South Street", "San Francisco", [1], user_id="U0001"),
-    query_builder.order("14 South Street", "San Francisco", [1], user_id="U0001"),
-    query_builder.order("55 Park Road", "Austin", [1], user_id="U0002"),
-    query_builder.order("55 Park Road", "Austin", [2], user_id="U0002"),
-    query_builder.order("55 Park Road", "Austin", [2], user_id="U0002"),
-    query_builder.order("55 Park Road", "Austin", [1], user_id="U0002"),
-    query_builder.order("23 Grove Road", "Newark", [1, 1], user_id="U0003"),
-    query_builder.order("9735 Queensway", "Seattle", [1, 1, 1], user_id="U0004"),
-    query_builder.order("9735 Queensway", "Seattle", [1], user_id="U0004"),
-    query_builder.order("64 Fremont Street", "Boston", [2], user_id="U0005"),
-    query_builder.order("9227 Lincoln Street", "Santa Fe", [3], user_id="U0006"),
-    query_builder.order("9227 Lincoln Street", "Santa Fe", [1, 1], user_id="U0006"),
-    query_builder.order("9227 Lincoln Street", "Santa Fe", [2, 1], user_id="U0006"),
-    query_builder.order("464 Pilgrim Lane", "Toronto", [1], user_id="U0007"),
-    query_builder.order("464 Pilgrim Lane", "Toronto", [1, 1], user_id="U0007"),
-    query_builder.order("75 Fairway Court", "Bristol", [1, 1], user_id="U0008"),
-    query_builder.order("75 Fairway Court", "Bristol", [1], user_id="U0008"),
-    query_builder.order("86 East Drive", "Montreal", [1], user_id="U0009"),
-    query_builder.order("86 East Drive", "Montreal", [1], user_id="U0009"),
-    query_builder.order("86 East Drive", "Montreal", [2], user_id="U0009"),
-    query_builder.order("75 Selby Street", "Liverpool", [1, 1], user_id="U0010"),
-    query_builder.order("75 Selby Street", "Liverpool", [1, 1], user_id="U0010"),
-    query_builder.order("75 Selby Street", "Liverpool", [1], user_id="U0010"),
-    query_builder.order("786 Lake View Street", "Sacramento", [1], user_id="U0005"),
-    query_builder.order("786 Lake View Street", "Sacramento", [1], user_id="U0005"),
-    query_builder.order("786 Lake View Street", "Sacramento", [1], user_id="U0005"),
-    query_builder.order("8503 Second Street", "New York City", [2], user_id="U0003"),
-    query_builder.order("8503 Second Street", "New York City", [1], user_id="U0003"),
-    query_builder.order("826 Vermont Avenue", "Kansas City", [1], user_id="U0004"),
-    query_builder.order("984 Williams Street", "Los Angeles", [1], user_id="U0001"),
-    query_builder.order("984 Williams Street", "Los Angeles", [1, 1], user_id="U0001"),
-    query_builder.order("20 Ridge Lane", "Quebec City", [1], user_id="U0007"),
-    query_builder.order("20 Ridge Lane", "Quebec City", [1, 1], user_id="U0007"),
-    query_builder.order("20 Ridge Lane", "Quebec City", [1], user_id="U0007"),
-    query_builder.order("20 Ridge Lane", "Quebec City", [2], user_id="U0007"),
-    query_builder.order("112 Church Street", "Albany", [1], user_id="U0003"),
-    query_builder.order("112 Church Street", "Albany", [1, 1], user_id="U0003"),
+    query_builder.user("Kevin Morrison", "San Francisco"),  # "u0001"
+    query_builder.user("Cameron Osborne", "Austin"),  # "u0002"
+    query_builder.user("Keyla Pineda", "Newark"),  # "u0003"
+    query_builder.user("Lorenzo Nixon", "Seattle"),  # "u0004"
+    query_builder.user("Xavier Martinez", "Boston"),  # "u0005"
+    query_builder.user("Giovanni Beard", "Santa Fe"),  # "u0006"
+    query_builder.user("Skyler Townsend", "Toronto"),  # "u0007"
+    query_builder.user("Alia Hartman", "Bristol"),  # "u0008"
+    query_builder.user("Isaac Winters", "Montreal"),  # "u0009"
+    query_builder.user("Madison Everett", "Liverpool"),  # "u0010"
+    query_builder.order("14 South Street", "San Francisco", [2, 1], user_id="u0001"),
+    query_builder.order("14 South Street", "San Francisco", [1], user_id="u0001"),
+    query_builder.order("14 South Street", "San Francisco", [1], user_id="u0001"),
+    query_builder.order("55 Park Road", "Austin", [1], user_id="u0002"),
+    query_builder.order("55 Park Road", "Austin", [2], user_id="u0002"),
+    query_builder.order("55 Park Road", "Austin", [2], user_id="u0002"),
+    query_builder.order("55 Park Road", "Austin", [1], user_id="u0002"),
+    query_builder.order("23 Grove Road", "Newark", [1, 1], user_id="u0003"),
+    query_builder.order("9735 Queensway", "Seattle", [1, 1, 1], user_id="u0004"),
+    query_builder.order("9735 Queensway", "Seattle", [1], user_id="u0004"),
+    query_builder.order("64 Fremont Street", "Boston", [2], user_id="u0005"),
+    query_builder.order("9227 Lincoln Street", "Santa Fe", [3], user_id="u0006"),
+    query_builder.order("9227 Lincoln Street", "Santa Fe", [1, 1], user_id="u0006"),
+    query_builder.order("9227 Lincoln Street", "Santa Fe", [2, 1], user_id="u0006"),
+    query_builder.order("464 Pilgrim Lane", "Toronto", [1], user_id="u0007"),
+    query_builder.order("464 Pilgrim Lane", "Toronto", [1, 1], user_id="u0007"),
+    query_builder.order("75 Fairway Court", "Bristol", [1, 1], user_id="u0008"),
+    query_builder.order("75 Fairway Court", "Bristol", [1], user_id="u0008"),
+    query_builder.order("86 East Drive", "Montreal", [1], user_id="u0009"),
+    query_builder.order("86 East Drive", "Montreal", [1], user_id="u0009"),
+    query_builder.order("86 East Drive", "Montreal", [2], user_id="u0009"),
+    query_builder.order("75 Selby Street", "Liverpool", [1, 1], user_id="u0010"),
+    query_builder.order("75 Selby Street", "Liverpool", [1, 1], user_id="u0010"),
+    query_builder.order("75 Selby Street", "Liverpool", [1], user_id="u0010"),
+    query_builder.order("786 Lake View Street", "Sacramento", [1], user_id="u0005"),
+    query_builder.order("786 Lake View Street", "Sacramento", [1], user_id="u0005"),
+    query_builder.order("786 Lake View Street", "Sacramento", [1], user_id="u0005"),
+    query_builder.order("8503 Second Street", "New York City", [2], user_id="u0003"),
+    query_builder.order("8503 Second Street", "New York City", [1], user_id="u0003"),
+    query_builder.order("826 Vermont Avenue", "Kansas City", [1], user_id="u0004"),
+    query_builder.order("984 Williams Street", "Los Angeles", [1], user_id="u0001"),
+    query_builder.order("984 Williams Street", "Los Angeles", [1, 1], user_id="u0001"),
+    query_builder.order("20 Ridge Lane", "Quebec City", [1], user_id="u0007"),
+    query_builder.order("20 Ridge Lane", "Quebec City", [1, 1], user_id="u0007"),
+    query_builder.order("20 Ridge Lane", "Quebec City", [1], user_id="u0007"),
+    query_builder.order("20 Ridge Lane", "Quebec City", [2], user_id="u0007"),
+    query_builder.order("112 Church Street", "Albany", [1], user_id="u0003"),
+    query_builder.order("112 Church Street", "Albany", [1, 1], user_id="u0003"),
     query_builder.review(4),
     query_builder.review(5),
     query_builder.review(5),
