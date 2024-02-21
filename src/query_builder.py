@@ -176,6 +176,7 @@ class QueryBuilder:
             title: str,
             page_count: int,
             price: str,
+            genres: list[str],
             contributors: list[tuple[str, ContributorRole]],
             publisher_name: str,
             publication_year: int,
@@ -197,6 +198,9 @@ class QueryBuilder:
             f"""$book has price {price};""",
             f"""$book has stock {stock};""",
         ))
+
+        for genre in genres:
+            queries += f""" $book has genre "{genre}";"""
 
         if isbn_10 is not None:
             queries += f""" $book has isbn-10 "{isbn_10}";"""
@@ -262,6 +266,7 @@ class QueryBuilder:
             title: str,
             page_count: int,
             price: str,
+            genres: list[str],
             contributors: list[tuple[str, ContributorRole]],
             publisher_name: str,
             publication_year: int,
@@ -275,6 +280,7 @@ class QueryBuilder:
             title,
             page_count,
             price,
+            genres,
             contributors,
             publisher_name,
             publication_year,
@@ -289,6 +295,7 @@ class QueryBuilder:
             title: str,
             page_count: int,
             price: str,
+            genres: list[str],
             contributors: list[tuple[str, ContributorRole]],
             publisher_name: str,
             publication_year: int,
@@ -302,6 +309,7 @@ class QueryBuilder:
             title,
             page_count,
             price,
+            genres,
             contributors,
             publisher_name,
             publication_year,
@@ -316,6 +324,7 @@ class QueryBuilder:
             title: str,
             page_count: int,
             price: str,
+            genres: list[str],
             contributors: list[tuple[str, ContributorRole]],
             publisher_name: str,
             publication_year: int,
@@ -329,6 +338,7 @@ class QueryBuilder:
             title,
             page_count,
             price,
+            genres,
             contributors,
             publisher_name,
             publication_year,
