@@ -208,7 +208,6 @@ class QueryBuilder:
             f"""$book has title "{title}";""",
             f"""$book has page-count {page_count};""",
             f"""$book has price {price};""",
-            f"""$book has stock {stock};""",
         ))
 
         for genre in genres:
@@ -216,6 +215,9 @@ class QueryBuilder:
 
         if isbn_10 is not None:
             queries += f""" $book has isbn-10 "{isbn_10}";"""
+
+        if book_type in (BookType.PAPERBACK, BookType.HARDBACK):
+            queries += f""" $book has stock {stock};"""
 
         for contributor in contributors:
             contributor_name = contributor[0]
@@ -342,7 +344,6 @@ class QueryBuilder:
             publication_year: int,
             publication_city: str,
             isbn_10: str = None,
-            stock: int = None,
     ) -> str:
         return self._book(
             BookType.EBOOK,
@@ -356,7 +357,7 @@ class QueryBuilder:
             publication_year,
             publication_city,
             isbn_10,
-            stock,
+            None,
         )
 
     def promotion(self, code: str, name: str, start_timestamp: str, end_timestamp: str, promotion_inclusions: list[tuple[str, str]]) -> str:
@@ -547,7 +548,7 @@ class QueryBuilder:
         if user_id is None:
             user_id = self._get_random_user_id()
 
-        queries = "# login \n" + " ".join((
+        queries = "# login\n" + " ".join((
             f"""match""",
             f"""$user isa user;""",
             f"""$user has id "{user_id}";""",
