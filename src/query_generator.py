@@ -402,6 +402,18 @@ queries = [
         "2023-12-31T23:59:59",
         [("9780575104419", "0.25"), ("9780060929794", "0.25"), ("9780375801679", "0.25"), ("9780008627843", "0.25"), ("9780500026557", "0.25")]
     ),
+    query_builder.paperback(
+        "9780451162076",
+        "Pet Sematary",
+        374,
+        "93.22",
+        ["fiction", "horror"],
+        [("King, Stephen", ContributorRole.AUTHOR)],
+        "Signet",
+        1984,
+        "New York City",
+        "0451162072",
+    ),
 ]
 
 with open("src/queries.tql", "w") as output_file:
