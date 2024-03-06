@@ -1,2 +1,2 @@
 # bookstore-example
-Example data for an book shop web store
+Example data for a book shop web store
