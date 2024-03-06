@@ -382,7 +382,7 @@ class QueryBuilder:
                 f"""$promotion isa promotion;""",
                 f"""$promotion has name "{name}";""",
                 f"""insert""",
-                f"""$inclusion (promotion: $promotion, included: $book) isa promotion-inclusion;""",
+                f"""$inclusion (promotion: $promotion, item: $book) isa promotion-inclusion;""",
                 f"""$inclusion has discount {discount};""",
             ))
 
