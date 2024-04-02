@@ -268,7 +268,7 @@ queries = [
         310,
         "16.99",
         ["fiction", "fantasy"],
-        [("J.R.R. Tolkein", ContributorRole.AUTHOR), ("J.R.R. Tolkein", ContributorRole.ILLUSTRATOR)],
+        [("J.R.R. Tolkien", ContributorRole.AUTHOR), ("J.R.R. Tolkien", ContributorRole.ILLUSTRATOR)],
         "Harper Collins",
         2023,
         "New York City",
