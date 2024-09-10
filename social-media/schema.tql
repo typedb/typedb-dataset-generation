@@ -1,19 +1,29 @@
 define
-  content sub entity, abstract;
+  content sub entity, abstract,
+    owns id @key,
+    owns is-visible,
+    plays subscription:content;
 
   page sub content, abstract,
+    owns page-id as id,
     owns name,
     owns bio,
     owns profile-picture,
+    owns badge,
+    owns is-active,
     plays posting:page,
-    plays view-permission:viewable,
-    plays viewing:viewed;
+    plays viewing:viewed,
+    plays following:page;
 
   profile sub page, abstract,
-    owns username,
+    owns username as page-id,
+    owns can-publish,
+    plays group-membership:member,
+    plays location:located,
     plays viewing:viewer,
     plays content-engagement:author,
-    plays view-permission:viewer;
+    plays following:follower,
+    plays subscription:subscriber;
 
   person sub profile,
     owns gender,
@@ -33,9 +43,7 @@ define
     plays engagement:fiance,
     plays marriage:spouse,
     plays employment:employee,
-    plays education:attendee,
-    plays group-membership:member,
-    plays location:located;
+    plays education:attendee;
 
   birth sub relation,
     relates born,
@@ -74,8 +82,7 @@ define
 
   organisation sub profile,
     owns tag,
-    plays employment:employer,
-    plays location:located;
+    plays employment:employer;
 
   company sub organisation;
   charity sub organisation;
@@ -102,6 +109,7 @@ define
     owns description;
 
   group sub page,
+    owns group-id as page-id,
     owns tag,
     owns page-visibility,
     owns post-visibility,
@@ -111,10 +119,12 @@ define
     relates group,
     relates member,
     owns rank,
+    owns badge,
     owns start-timestamp,
     owns end-timestamp;
 
   post sub content, abstract,
+    owns post-id as id,
     owns post-text,
     owns creation-timestamp,
     owns language,
@@ -125,7 +135,6 @@ define
     plays commenting:parent,
     plays reaction:parent,
     plays location:located,
-    plays view-permission:viewable,
     plays viewing:viewed;
 
   text-post sub post;
@@ -147,6 +156,7 @@ define
     plays response:poll;
 
   comment sub content,
+    owns comment-id as id,
     owns comment-text,
     owns creation-timestamp,
     owns tag,
@@ -187,11 +197,16 @@ define
     owns answer,
     owns creation-timestamp;
 
-  view-permission sub relation,
-    relates viewer,
-    relates viewable;
+  following sub relation,
+    relates follower,
+    relates page;
+
+  subscription sub relation,
+    relates subscriber,
+    relates content;
 
   place sub entity,
+    owns place-id,
     owns name,
     plays location:place;
 
@@ -245,128 +260,144 @@ define
     relates parent as place,
     relates landmark as located;
 
-  username sub attribute, value string;
+  id sub attribute, abstract, value string;
+  page-id sub id, abstract;
+  username sub page-id;
+  group-id sub page-id;
+  post-id sub id;
+  comment-id sub id;
+  place-id sub id;
+
   name sub attribute, value string;
-  event-date sub attribute, abstract, value datetime;
-  exact-date sub event-date, abstract;
-  birth-date sub exact-date;
   gender sub attribute, value string;
   language sub attribute, value string;
   email sub attribute, value string;
   phone sub attribute, value string;
   relationship-status sub attribute, value string, regex "^(single|relationship|engaged|married|complicated)$";
-  bio sub text-payload;
-  profile-picture sub image-payload;
-  visibility sub attribute, abstract, value string;
-  page-visibility sub visibility, regex "^(public|private)$";
-  post-visibility sub visibility, regex "^(default|public|private)$";
+  lattitude sub attribute, value double;
+  longitude sub attribute, value double;
+
+  event-date sub attribute, abstract, value datetime;
   start-date sub event-date;
   end-date sub event-date;
+  exact-date sub event-date, abstract;
+  birth-date sub exact-date;
   engagement-date sub exact-date;
   marriage-date sub exact-date;
-  tag sub attribute, value string;
-  description sub text-payload;
-  rank sub attribute, value string, regex "^(member|moderator|admin|owner)$";
-  start-timestamp sub attribute, value datetime;
-  end-timestamp sub attribute, value datetime;
-  creation-timestamp sub attribute, value datetime;
+
   payload sub attribute, abstract, value string;
   text-payload sub payload, abstract;
   media-payload sub payload, abstract;
   image-payload sub media-payload, abstract;
   video-payload sub media-payload, abstract;
+  bio sub text-payload;
+  description sub text-payload;
+  profile-picture sub image-payload;
   post-text sub text-payload;
   post-image sub image-payload;
   post-video sub video-payload;
-  comment-text sub text-payload;
   question sub text-payload;
   answer sub text-payload;
+  comment-text sub text-payload;
+
+  tag sub attribute, value string;
+  rank sub attribute, value string, regex "^(member|moderator|admin|owner)$";
   emoji sub attribute, value string, regex "^(like|love|funny|surprise|sad|angry)$";
+  badge sub attribute, value string;
+
   creation-timestamp sub attribute, value datetime;
-  lattitude sub attribute, value double;
-  longitude sub attribute, value double;
+  start-timestamp sub attribute, value datetime;
+  end-timestamp sub attribute, value datetime;
 
-  rule relatives-are-friends:
-    when {
-      (relative: $person-1, relative: $person-2) isa family;
-    } then {
-      (friend: $person-1, friend: $person-2) isa friendship;
-    };
+  visibility sub attribute, abstract, value string;
+  page-visibility sub visibility, regex "^(public|private)$";
+  post-visibility sub visibility, regex "^(default|public|private)$";
 
-  rule partners-are-friends:
-    when {
-      (partner: $person-1, partner: $person-2) isa relationship;
-    } then {
-      (friend: $person-1, friend: $person-2) isa friendship;
-    };
+  is-visible sub attribute, value boolean;
+  is-active sub attribute, value boolean;
+  can-publish sub attribute, value boolean;
 
-  rule transitive-location:
-    when {
-      (place: $parent, located: $child) isa location;
-      (place: $child, located: $x) isa location;
-      $x isa $t;
-      $t  plays location:located;
-    } then {
-      (place: $parent, located: $x) isa location;
-    };
+#  rule relatives-are-friends:
+#    when {
+#      (relative: $person-1, relative: $person-2) isa family;
+#    } then {
+#      (friend: $person-1, friend: $person-2) isa friendship;
+#    };
 
-  rule page-view-permissions:
-    when {
-      $viewer isa $viewer-type;
-      $page isa $page-type;
-      {
-        $viewer-type type profile;
-        $page-type type person;
-        $page has page-visibility "public";
-      } or {
-        (friend: $page, friend: $viewer) isa friendship;
-      } or {
-        $viewer-type type profile;
-        $page-type type organisation;
-      } or {
-        $viewer-type type profile;
-        $page-type type group;
-        $page has page-visibility "public";
-      } or {
-        (group: $page, member: $viewer) isa group-membership;
-      };
-    } then {
-      (viewer: $viewer, viewable: $page) isa view-permission;
-    };
+#  rule partners-are-friends:
+#    when {
+#      (partner: $person-1, partner: $person-2) isa relationship;
+#    } then {
+#      (friend: $person-1, friend: $person-2) isa friendship;
+#    };
 
-  rule default-post-visibility-per-page:
-    when {
-      $page has post-visibility "default";
-      $page has page-visibility $page-vis;
-      ?post-vis = $page-vis;
-    } then {
-      $page has post-visibility ?post-vis;
-    };
+#  rule transitive-location:
+#    when {
+#      (place: $parent, located: $child) isa location;
+#      (place: $child, located: $x) isa location;
+#      $x isa $t;
+#      $t  plays location:located;
+#    } then {
+#      (place: $parent, located: $x) isa location;
+#    };
 
-  rule default-post-visibility-per-post:
-    when {
-      (page: $page, post: $post) isa posting;
-      $post has post-visibility "default";
-      $page has post-visibility $default-vis;
-    } then {
-      $post has $default-vis;
-    };
+#  rule page-view-permissions:
+#    when {
+#      $viewer isa $viewer-type;
+#      $page isa $page-type;
+#      {
+#        $viewer-type type profile;
+#        $page-type type person;
+#        $page has page-visibility "public";
+#      } or {
+#        (friend: $page, friend: $viewer) isa friendship;
+#      } or {
+#        $viewer-type type profile;
+#        $page-type type organisation;
+#      } or {
+#        $viewer-type type profile;
+#        $page-type type group;
+#        $page has page-visibility "public";
+#      } or {
+#        (group: $page, member: $viewer) isa group-membership;
+#      };
+#    } then {
+#      (viewer: $viewer, viewable: $page) isa view-permission;
+#    };
 
-  rule post-view-permissions:
-    when {
-      $viewer isa $viewer-type;
-      (page: $page, post: $post) isa posting;
-      {
-        $post has post-visibility "public";
-        (viewer: $viewer, viewable: $page) isa view-permission;
-      } or {
-        (friend: $page, friend: $viewer) isa friendship;
-      } or {
-        $viewer-type type profile;
-        $page isa organisation;
-      } or {
-        (group: $page, member: $viewer) isa group-membership;
-      };
-    } then {
-      (viewer: $viewer, viewable: $post) isa view-permission;
-    };
+#  rule default-post-visibility-per-page:
+#    when {
+#      $page has post-visibility "default";
+#      $page has page-visibility $page-vis;
+#      ?post-vis = $page-vis;
+#    } then {
+#      $page has post-visibility ?post-vis;
+#    };
+
+#  rule default-post-visibility-per-post:
+#    when {
+#      (page: $page, post: $post) isa posting;
+#      $post has post-visibility "default";
+#      $page has post-visibility $default-vis;
+#    } then {
+#      $post has $default-vis;
+#    };
+
+#  rule post-view-permissions:
+#    when {
+#      $viewer isa $viewer-type;
+#      (page: $page, post: $post) isa posting;
+#      {
+#        $post has post-visibility "public";
+#        (viewer: $viewer, viewable: $page) isa view-permission;
+#      } or {
+#        (friend: $page, friend: $viewer) isa friendship;
+#      } or {
+#        $viewer-type type profile;
+#        $page isa organisation;
+#      } or {
+#        (group: $page, member: $viewer) isa group-membership;
+#      };
+#    } then {
+#      (viewer: $viewer, viewable: $post) isa view-permission;
+#    };
