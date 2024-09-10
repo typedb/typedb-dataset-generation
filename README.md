@@ -1,2 +1,3 @@
-# bookstore-example
-Example data for a book shop web store
+# TypeDB example dataset generators
+
+Dataset generation for TypeDB example datasets.
