@@ -67,12 +67,14 @@ class PostVisibility(Enum):
 
 
 class QueryBuilder:
+    _username_suffix_digits = 3
     _group_id_prefix = "grp"
     _post_id_prefix = "pst"
     _comment_id_prefix = "cmt"
     _place_id_prefix = "plc"
     _media_id_prefix = "med"
-    _username_suffix_digits = 3
+    _start_year = 2020
+    _end_year = 2024
 
     def __init__(self, seed=0):
         self._random = Random(seed)
@@ -158,7 +160,13 @@ class QueryBuilder:
     def _get_random_relationship_status(self) -> RelationshipStatus:
         return self._random.choice([status for status in RelationshipStatus])
 
-    def _get_random_timestamp(self, timestamp_format: TimestampFormat, start_year: int = 2020, end_year: int = 2024) -> str:
+    def _get_random_timestamp(self, timestamp_format: TimestampFormat, start_year: int = None, end_year: int = None) -> str:
+        if start_year is None:
+            start_year = self._start_year
+
+        if end_year is None:
+            end_year = self._end_year
+
         year = self._random.randint(start_year, end_year)
         month = self._random.randint(1, 12)
 
