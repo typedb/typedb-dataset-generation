@@ -269,7 +269,7 @@ define
   place-id sub id;
 
   name sub attribute, value string;
-  gender sub attribute, value string;
+  gender sub attribute, value string, regex "^(male|female|other)$";
   language sub attribute, value string;
   email sub attribute, value string;
   phone sub attribute, value string;

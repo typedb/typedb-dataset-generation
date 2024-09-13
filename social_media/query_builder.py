@@ -243,3 +243,355 @@ class QueryBuilder:
 
         timestamp = start + (end - start) * self._random.random()
         return timestamp_format.to_string(timestamp)
+
+    def person(
+            self,
+            bio: str,
+            languages: list[str] = ["English"],
+            is_active: bool = True,
+            is_visible: bool = True,
+            can_publish: bool = True,
+            page_visibility: PageVisibility = PageVisibility.PUBLIC,
+            post_visibility: PageVisibility = PostVisibility.PUBLIC,
+    ) -> str:
+        gender = self._get_random_gender()
+        name = self._get_new_name(NameType.FULL, gender)
+        username = self._get_new_username(name)
+        email = self._get_new_email(username)
+        profile_picture = self._get_new_media_id()
+        relationship_status = self._get_random_relationship_status()
+
+        queries = "# person\n" + " ".join((
+            f"""insert""",
+            f"""$person isa person;""",
+            f"""$person has username "{username}";""",
+            f"""$person has name "{name}";""",
+            f"""$person has bio "{bio}";""",
+            f"""$person has profile-picture "{profile_picture}";""",
+            f"""$person has gender "{gender.value}";""",
+            f"""$person has email "{email}";""",
+            f"""$person has relationship-status "{relationship_status.value}";""",
+            f"""$person has is-active "{str(is_active).lower()}";""",
+            f"""$person has is-visible "{str(is_visible).lower()}";""",
+            f"""$person has can-publish "{str(can_publish).lower()}";""",
+            f"""$person has page-visibility "{page_visibility.value}";""",
+            f"""$person has post-visibility "{post_visibility.value}";""",
+        ))
+
+        for language in languages:
+            queries += f""" $person has language "{language}";"""
+
+        return queries
+
+    def group(
+            self,
+            name: str,
+            bio: str,
+            tags: list[str],
+            is_active: bool = True,
+            is_visible: bool = True,
+            can_publish: bool = True,
+            page_visibility: PageVisibility = PageVisibility.PUBLIC,
+            post_visibility: PageVisibility = PostVisibility.PUBLIC,
+    ) -> str:
+        group_id = self._get_new_group_id()
+        profile_picture = self._get_new_media_id()
+
+        queries = "# group\n" + " ".join((
+            f"""insert""",
+            f"""$group isa group;""",
+            f"""$group has group-id "{group_id}";""",
+            f"""$group has name "{name}";""",
+            f"""$group has bio "{bio}";""",
+            f"""$group has profile-picture "{profile_picture}";""",
+            f"""$group has is-active "{str(is_active).lower()}";""",
+            f"""$group has is-visible "{str(is_visible).lower()}";""",
+            f"""$group has can-publish "{str(can_publish).lower()}";""",
+            f"""$group has page-visibility "{page_visibility.value}";""",
+            f"""$group has post-visibility "{post_visibility.value}";""",
+        ))
+
+        for tag in tags:
+            queries += f""" $group has tag "{tag}";"""
+
+        return queries
+
+    def _post(
+            self,
+            post_type: PostType,
+            post_text: str,
+            tags: list[str],
+            creation_timestamp: str = None,
+            language: str = "English",
+            is_visible: bool = True,
+            post_visibility: PostVisibility = PostVisibility.DEFAULT,
+    ) -> str:
+        post_id = self._get_new_post_id()
+
+        if creation_timestamp is None:
+            creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME)
+
+        queries = "# post\n" + " ".join((
+            f"""insert""",
+            f"""$post isa {post_type.value};""",
+            f"""$post has post-id "{post_id}";""",
+            f"""$post has post-text "{post_text}";""",
+            f"""$post has creation-timestamp {creation_timestamp};""",
+            f"""$post has language "{language}";""",
+            f"""$post has is-visible "{str(is_visible).lower()}";""",
+            f"""$post has post-visibility "{post_visibility}";""",
+        ))
+
+        for tag in tags:
+            queries += f""" $post has tag {tag};"""
+
+        return queries
+
+    def text_post(
+            self,
+            post_text: str,
+            tags: list[str],
+            creation_timestamp: str = None,
+            language: str = "English",
+            is_visible: bool = True,
+            post_visibility: PostVisibility = PostVisibility.DEFAULT,
+    ) -> str:
+        return self._post(
+            PostType.TEXT,
+            post_text,
+            tags,
+            creation_timestamp,
+            language,
+            is_visible,
+            post_visibility,
+        )
+
+    def share_post(
+            self,
+            post_text: str,
+            original_post_id: str,
+            tags: list[str],
+            creation_timestamp: str = None,
+            language: str = "English",
+            is_visible: bool = True,
+            post_visibility: PostVisibility = PostVisibility.DEFAULT,
+    ) -> str:
+        queries = self._post(
+            PostType.SHARE,
+            post_text,
+            tags,
+            creation_timestamp,
+            language,
+            is_visible,
+            post_visibility,
+        )
+
+        raise NotImplementedError()
+
+    def image_post(
+            self,
+            post_text: str,
+            tags: list[str],
+            creation_timestamp: str = None,
+            language: str = "English",
+            is_visible: bool = True,
+            post_visibility: PostVisibility = PostVisibility.DEFAULT,
+    ) -> str:
+        post_image = self._get_new_media_id()
+
+        queries = self._post(
+            PostType.IMAGE,
+            post_text,
+            tags,
+            creation_timestamp,
+            language,
+            is_visible,
+            post_visibility,
+        )
+
+        queries += f""" $post has post-image "{post_image}";"""
+        return queries
+
+    def video_post(
+            self,
+            post_text: str,
+            tags: list[str],
+            creation_timestamp: str = None,
+            language: str = "English",
+            is_visible: bool = True,
+            post_visibility: PostVisibility = PostVisibility.DEFAULT,
+    ) -> str:
+        post_video = self._get_new_media_id()
+
+        queries = self._post(
+            PostType.VIDEO,
+            post_text,
+            tags,
+            creation_timestamp,
+            language,
+            is_visible,
+            post_visibility,
+        )
+
+        queries += f""" $post has post-video "{post_video}";"""
+        return queries
+
+    def live_video_post(
+            self,
+            post_text: str,
+            tags: list[str],
+            creation_timestamp: str = None,
+            language: str = "English",
+            is_visible: bool = True,
+            post_visibility: PostVisibility = PostVisibility.DEFAULT,
+    ) -> str:
+        post_video = self._get_new_media_id()
+
+        queries = self._post(
+            PostType.LIVE,
+            post_text,
+            tags,
+            creation_timestamp,
+            language,
+            is_visible,
+            post_visibility,
+        )
+
+        queries += f""" $post has post-video "{post_video}";"""
+        return queries
+
+    def poll_post(
+            self,
+            post_text: str,
+            tags: list[str],
+            question: str,
+            answers: list[str],
+            creation_timestamp: str = None,
+            language: str = "English",
+            is_visible: bool = True,
+            post_visibility: PostVisibility = PostVisibility.DEFAULT,
+    ) -> str:
+        queries = self._post(
+            PostType.POLL,
+            post_text,
+            tags,
+            creation_timestamp,
+            language,
+            is_visible,
+            post_visibility,
+        )
+
+        queries += f""" $post has question "{question}";"""
+
+        for answer in answers:
+            queries += f""" $post has answer "{answer}";"""
+
+        return queries
+
+    def comment(
+            self,
+            parent_id: str,
+            comment_text: str,
+            tags: list[str],
+            creation_timestamp: str = None,
+            is_visible: bool = True,
+    ) -> str:
+        comment_id = self._get_new_comment_id()
+
+        queries = "# comment\n" + " ".join((
+            f"""insert""",
+            f"""$comment isa comment;""",
+            f"""$comment has comment-id "{comment_id}";""",
+            f"""$comment has comment-text "{comment_text}";""",
+            f"""$comment has creation-timestamp {creation_timestamp};""",
+            f"""$comment has is-visible {str(is_visible).lower()};""",
+        ))
+
+        for tag in tags:
+            queries += f""" $comment has tag {tag};"""
+
+        raise NotImplementedError()
+
+    def _place(
+            self,
+            place_type: PlaceType,
+            name: str,
+            parent_id: str = None,
+    ):
+        place_id = self._get_new_place_id()
+
+        queries = "# place\n" + " ".join((
+            f"""insert""",
+            f"""$place isa {place_type.value};""",
+            f"""$place has place-id "{place_id}";""",
+            f"""$place has name "{name}";""",
+        ))
+
+        raise NotImplementedError()
+
+    def region(
+            self,
+            name: str,
+    ):
+        queries = self._place(
+            PlaceType.REGION,
+            name,
+        )
+
+        return queries
+
+    def country(
+            self,
+            name: str,
+            parent_id: str,
+            languages: list[str],
+    ):
+        queries = self._place(
+            PlaceType.COUNTRY,
+            name,
+            parent_id,
+        )
+
+        for language in languages:
+            queries += f""" $place has language "{language}";"""
+
+        return queries
+
+    def state(
+            self,
+            name: str,
+            parent_id: str,
+    ):
+        queries = self._place(
+            PlaceType.STATE,
+            name,
+            parent_id,
+        )
+
+        return queries
+
+    def city(
+            self,
+            name: str,
+            parent_id: str,
+    ):
+        queries = self._place(
+            PlaceType.CITY,
+            name,
+            parent_id,
+        )
+
+        return queries
+
+    def landmark(
+            self,
+            name: str,
+            parent_id: str,
+    ):
+        queries = self._place(
+            PlaceType.LANDMARK,
+            name,
+            parent_id,
+        )
+
+        return queries
