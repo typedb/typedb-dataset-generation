@@ -111,6 +111,48 @@ class PlaceType(Enum):
     CITY = "city"
     LANDMARK = "landmark"
 
+    @property
+    def location_type(self) -> str:
+        match self:
+            case PlaceType.REGION:
+                return "region-location"
+            case PlaceType.COUNTRY:
+                return "country-location"
+            case PlaceType.STATE:
+                return "state-location"
+            case PlaceType.CITY:
+                return "city-location"
+            case PlaceType.LANDMARK:
+                return "landmark-location"
+
+    @property
+    def place_role(self) -> str:
+        match self:
+            case PlaceType.REGION:
+                return "parent-region"
+            case PlaceType.COUNTRY:
+                return "region"
+            case PlaceType.STATE:
+                return "country"
+            case PlaceType.CITY:
+                return "parent"
+            case PlaceType.LANDMARK:
+                return "parent"
+
+    @property
+    def located_role(self) -> str:
+        match self:
+            case PlaceType.REGION:
+                return "child-region"
+            case PlaceType.COUNTRY:
+                return "country"
+            case PlaceType.STATE:
+                return "state"
+            case PlaceType.CITY:
+                return "city"
+            case PlaceType.LANDMARK:
+                return "landmark"
+
 
 class QueryBuilder:
     _username_suffix_digits = 3
@@ -162,6 +204,9 @@ class QueryBuilder:
         place_id = f"{self._place_id_prefix}-{self._get_new_uuid()}"
         self._place_ids.append(place_id)
         return place_id
+
+    def _add_new_place_id(self, place_id) -> None:
+        self._place_ids.append(place_id)
 
     def _get_new_media_id(self) -> str:
         media_id = f"{self._media_id_prefix}-{self._get_new_uuid()}"
@@ -516,26 +561,46 @@ class QueryBuilder:
             self,
             place_type: PlaceType,
             name: str,
+            place_id: str = None,
             parent_id: str = None,
     ):
-        place_id = self._get_new_place_id()
+        if place_id is None:
+            place_id = self._get_new_place_id()
+        else:
+            self._add_new_place_id(place_id)
 
-        queries = "# place\n" + " ".join((
-            f"""insert""",
+        queries = "# place\n"
+
+        if parent_id is not None:
+            queries += " ".join((
+                f"""match""",
+                f"""$parent isa place;""",
+                f"""$parent has id "{parent_id}";""",
+                f"""insert""",
+                f"""({PlaceType.place_role}: $parent, {PlaceType.located_role}: $place) isa {PlaceType.location_type};""",
+            ))
+        else:
+            queries += "insert"
+
+        queries += " " + " ".join((
             f"""$place isa {place_type.value};""",
             f"""$place has place-id "{place_id}";""",
             f"""$place has name "{name}";""",
         ))
 
-        raise NotImplementedError()
+        return queries
 
     def region(
             self,
             name: str,
+            place_id: str,
+            parent_id: str = None,
     ):
         queries = self._place(
-            PlaceType.REGION,
-            name,
+            place_type=PlaceType.REGION,
+            name=name,
+            place_id=place_id,
+            parent_id=parent_id,
         )
 
         return queries
@@ -543,13 +608,15 @@ class QueryBuilder:
     def country(
             self,
             name: str,
+            place_id: str,
             parent_id: str,
             languages: list[str],
     ):
         queries = self._place(
-            PlaceType.COUNTRY,
-            name,
-            parent_id,
+            place_type=PlaceType.COUNTRY,
+            name=name,
+            place_id=place_id,
+            parent_id=parent_id,
         )
 
         for language in languages:
@@ -560,12 +627,14 @@ class QueryBuilder:
     def state(
             self,
             name: str,
+            place_id: str,
             parent_id: str,
     ):
         queries = self._place(
-            PlaceType.STATE,
-            name,
-            parent_id,
+            place_type=PlaceType.STATE,
+            name=name,
+            place_id=place_id,
+            parent_id=parent_id,
         )
 
         return queries
@@ -573,12 +642,14 @@ class QueryBuilder:
     def city(
             self,
             name: str,
+            place_id: str,
             parent_id: str,
     ):
         queries = self._place(
-            PlaceType.CITY,
-            name,
-            parent_id,
+            place_type=PlaceType.CITY,
+            name=name,
+            place_id=place_id,
+            parent_id=parent_id,
         )
 
         return queries
@@ -589,9 +660,9 @@ class QueryBuilder:
             parent_id: str,
     ):
         queries = self._place(
-            PlaceType.LANDMARK,
-            name,
-            parent_id,
+            place_type=PlaceType.LANDMARK,
+            name=name,
+            parent_id=parent_id,
         )
 
         return queries
