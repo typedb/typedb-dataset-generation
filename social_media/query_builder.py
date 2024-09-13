@@ -38,6 +38,32 @@ class TimestampFormat(Enum):
     DATETIME = "YYYY-MM-DDTHH:MM:SS"
     PRECISE_DATETIME = "YYYY-MM-DDTHH:MM:SS.FFF"
 
+    @property
+    def _format(self) -> str:
+        match self:
+            case TimestampFormat.DATE:
+                return "%Y-%m-%d"
+            case TimestampFormat.DATETIME:
+                return "%Y-%m-%dT%H:%M:%S"
+            case TimestampFormat.PRECISE_DATETIME:
+                return "%Y-%m-$dT%H:%M:%S.%f"
+            case _:
+                raise RuntimeError()
+
+    def parse_string(self, timestamp: str) -> datetime:
+        if self is TimestampFormat.PRECISE_DATETIME:
+            timestamp += "000"
+
+        return datetime.strptime(timestamp, self._format)
+
+    def to_string(self, timestamp: datetime) -> str:
+        string = timestamp.strftime(self._format)
+
+        if self is TimestampFormat.PRECISE_DATETIME:
+            string = string[:-3]
+
+        return string
+
 
 class GroupMemberRank(Enum):
     MEMBER = "member"
@@ -160,47 +186,16 @@ class QueryBuilder:
     def _get_random_relationship_status(self) -> RelationshipStatus:
         return self._random.choice([status for status in RelationshipStatus])
 
-    def _get_random_timestamp(self, timestamp_format: TimestampFormat, start_year: int = None, end_year: int = None) -> str:
-        if start_year is None:
-            start_year = self._start_year
-
-        if end_year is None:
-            end_year = self._end_year
-
-        year = self._random.randint(start_year, end_year)
-        month = self._random.randint(1, 12)
-
-        if month == 2:
-            if year % 4:
-                if year % 100:
-                    if year % 400:
-                        max_day = 29
-                    else:
-                        max_day = 28
-                else:
-                    max_day = 29
-            else:
-                max_day = 28
-        elif month in (4, 6, 9, 11):
-            max_day = 30
+    def _get_random_timestamp(self, timestamp_format: TimestampFormat, start: str = None, end: str = None) -> str:
+        if start is None:
+            start = datetime(year=self._start_year, month=1, day=1)
         else:
-            max_day = 31
+            start = timestamp_format.parse_string(start)
 
-        day = self._random.randint(1, max_day)
-        hour = self._random.randint(0, 23)
-        minute = self._random.randint(0, 59)
-        second = self._random.randint(0, 59)
-        milliseconds = self._random.randint(0, 999)
-        date = f"{str(year).zfill(4)}-{str(month).zfill(2)}-{str(day).zfill(2)}"
-        time = f"{str(hour).zfill(2)}:{str(minute).zfill(2)}:{str(second).zfill(2)}"
+        if end is None:
+            end = datetime(year=self._end_year + 1, month=1, day=1)
+        else:
+            end = timestamp_format.parse_string(end)
 
-        match timestamp_format:
-            case TimestampFormat.DATE:
-                return date
-            case TimestampFormat.DATETIME:
-                return f"{date}T{time}"
-            case TimestampFormat.PRECISE_DATETIME:
-                return f"{date}T{time}.{str(milliseconds).zfill(3)}"
-
-
-
+        timestamp = start + (end - start) * self._random.random()
+        return timestamp_format.to_string(timestamp)
