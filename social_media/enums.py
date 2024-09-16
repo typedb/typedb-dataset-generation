@@ -57,6 +57,8 @@ class FamilyType(Enum, SocialRelation):
                 return "parent"
             case FamilyType.SIBLING:
                 return "sibling"
+            case _:
+                raise RuntimeError()
 
     @property
     def role_second(self) -> str:
@@ -67,6 +69,8 @@ class FamilyType(Enum, SocialRelation):
                 return "child"
             case FamilyType.SIBLING:
                 return self.role_first
+            case _:
+                raise RuntimeError()
 
 
 class RelationshipType(Enum, SocialRelation):
@@ -207,6 +211,8 @@ class PlaceType(Enum):
                 return "city-location"
             case PlaceType.LANDMARK:
                 return "landmark-location"
+            case _:
+                raise RuntimeError()
 
     @property
     def place_role(self) -> str:
@@ -221,6 +227,8 @@ class PlaceType(Enum):
                 return "parent"
             case PlaceType.LANDMARK:
                 return "parent"
+            case _:
+                raise RuntimeError()
 
     @property
     def located_role(self) -> str:
@@ -235,6 +243,8 @@ class PlaceType(Enum):
                 return "city"
             case PlaceType.LANDMARK:
                 return "landmark"
+            case _:
+                raise RuntimeError()
 
 
 class OrganisationType(Enum):
