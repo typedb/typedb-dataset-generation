@@ -27,6 +27,8 @@ class QueryBuilder:
     _comment_id_prefix = "cmt"
     _place_id_prefix = "plc"
     _media_id_prefix = "med"
+    _birth_range = ("1970-01-01", "1980-01-01")
+    _relationship_range = ("2010-01-01", "2025-01-01")
     _start_year = 2020
     _end_year = 2024
     _username_warning_threshold = 10 ** _username_suffix_digits
@@ -187,7 +189,7 @@ class QueryBuilder:
         username = self._get_new_person_username(name)
         email = self._get_new_email(username)
         profile_picture = self._get_new_media_id()
-        birth_date = self._get_random_timestamp(TimestampFormat.DATE, start="1970-01-01", end="1990-01-01")
+        birth_date = self._get_random_timestamp(TimestampFormat.DATE, start=self._birth_range[0], end=self._birth_range[1])
 
         queries = "# person\n" + " ".join((
             f"""match""",
@@ -627,7 +629,7 @@ class QueryBuilder:
         if location_id is None:
             location_id = self._random.choice(self._place_ids)
 
-        start_date = self._get_random_timestamp(TimestampFormat.DATE, start="2008-01-01", end="2025-01-01")
+        start_date = self._get_random_timestamp(TimestampFormat.DATE, start=self._relationship_range[0], end=self._relationship_range[1])
 
         match_clause = "# relationship\n" + " ".join((
             f"""match""",
