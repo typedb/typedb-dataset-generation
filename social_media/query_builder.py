@@ -4,7 +4,6 @@ from random import Random
 from typing import Any
 from uuid import UUID
 from warnings import warn
-
 from yaml import safe_load
 
 
@@ -34,6 +33,54 @@ class RelationshipStatus(Enum):
     ENGAGED = "engaged"
     MARRIED = "married"
     COMPLICATED = "complicated"
+
+    @property
+    def relationship_type(self) -> str:
+        match self:
+            case RelationshipStatus.SINGLE:
+                raise ValueError()
+            case RelationshipStatus.RELATIONSHIP:
+                return "relationship"
+            case RelationshipStatus.ENGAGED:
+                return "engagement"
+            case RelationshipStatus.MARRIED:
+                return "marriage"
+            case RelationshipStatus.COMPLICATED:
+                raise ValueError()
+            case _:
+                raise RuntimeError()
+
+    @property
+    def partner_role(self) -> str:
+        match self:
+            case RelationshipStatus.SINGLE:
+                raise ValueError()
+            case RelationshipStatus.RELATIONSHIP:
+                return "partner"
+            case RelationshipStatus.ENGAGED:
+                return "fiance"
+            case RelationshipStatus.MARRIED:
+                return "spouse"
+            case RelationshipStatus.COMPLICATED:
+                raise ValueError()
+            case _:
+                raise RuntimeError()
+
+    @property
+    def date_type(self) -> str:
+        match self:
+            case RelationshipStatus.SINGLE:
+                raise ValueError()
+            case RelationshipStatus.RELATIONSHIP:
+                return "start-date"
+            case RelationshipStatus.ENGAGED:
+                return "engagement-date"
+            case RelationshipStatus.MARRIED:
+                return "marriage-date"
+            case RelationshipStatus.COMPLICATED:
+                raise ValueError()
+            case _:
+                raise RuntimeError()
 
 
 class TimestampFormat(Enum):
@@ -176,11 +223,13 @@ class QueryBuilder:
 
     def __init__(self, seed=0):
         self._random = Random(seed)
-        self._usernames: list[str] = list()
+        self._person_usernames: list[str] = list()
+        self._organisation_usernames: list[str] = list()
         self._group_ids: list[str] = list()
         self._post_ids: list[str] = list()
         self._comment_ids: list[str] = list()
         self._place_ids: list[str] = list()
+        self._in_relationships: list[str] = list()
 
         with open("resources/female_names.yml", "r") as file:
             self._female_names: list[dict[str, Any]] = safe_load(file)
@@ -190,6 +239,10 @@ class QueryBuilder:
 
         with open("resources/last_names.yml", "r") as file:
             self._last_names: list[dict[str, Any]] = safe_load(file)
+
+    @property
+    def _usernames(self) -> list[str]:
+        return self._person_usernames + self._organisation_usernames
 
     def _get_new_uuid(self) -> str:
         return UUID(version=4, int=self._random.getrandbits(128)).hex
@@ -258,8 +311,8 @@ class QueryBuilder:
         else:
             return Gender.FEMALE
 
-    def _get_new_username(self, name: str) -> str:
-        if len(self._usernames) >= self._username_warning_threshold:
+    def _get_new_person_username(self, name: str) -> str:
+        if len(self._person_usernames) >= self._username_warning_threshold:
             message = " ".join((
                 f"The number of usernames generated has exceeded {self._username_warning_threshold}.",
                 f"This has a small chance to deadlock the query builder if generation continues significantly.",
@@ -273,12 +326,15 @@ class QueryBuilder:
             number_part = "".join(str(self._random.randint(0, 9)) for _ in range(self._username_suffix_digits))
             username = name_part + number_part
 
-            if username not in self._usernames:
-                self._usernames.append(username)
+            if username not in self._person_usernames:
+                self._person_usernames.append(username)
                 return username
 
-    def _add_new_username(self, username: str) -> None:
-        self._usernames.append(username)
+    def _get_random_person_username(self) -> str:
+        return self._random.choice(self._person_usernames)
+
+    def _add_new_organisation_username(self, username: str) -> None:
+        self._organisation_usernames.append(username)
 
     def _get_new_email(self, username: str) -> str:
         domain = self._random.choice([domain.value for domain in EmailDomain])
@@ -304,6 +360,8 @@ class QueryBuilder:
     def person(
             self,
             bio: str,
+            location_id: str,
+            birth_location_id: str,
             languages: list[str] = ["English"],
             is_active: bool = True,
             is_visible: bool = True,
@@ -313,12 +371,17 @@ class QueryBuilder:
     ) -> str:
         gender = self._get_random_gender()
         name = self._get_new_name(NameType.FULL, gender)
-        username = self._get_new_username(name)
+        username = self._get_new_person_username(name)
         email = self._get_new_email(username)
         profile_picture = self._get_new_media_id()
-        relationship_status = self._get_random_relationship_status()
+        birth_date = self._get_random_timestamp(TimestampFormat.DATE, start="1970-01-01", end="1990-01-01")
 
         queries = "# person\n" + " ".join((
+            f"""match""",
+            f"""$place isa place;""",
+            f"""$place has id "{location_id}";""",
+            f"""$birth-place isa place;""",
+            f"""$birth-place has id "{birth_location_id}";""",
             f"""insert""",
             f"""$person isa person;""",
             f"""$person has username "{username}";""",
@@ -327,12 +390,15 @@ class QueryBuilder:
             f"""$person has profile-picture "{profile_picture}";""",
             f"""$person has gender "{gender.value}";""",
             f"""$person has email "{email}";""",
-            f"""$person has relationship-status "{relationship_status.value}";""",
             f"""$person has is-active "{str(is_active).lower()}";""",
             f"""$person has is-visible "{str(is_visible).lower()}";""",
             f"""$person has can-publish "{str(can_publish).lower()}";""",
             f"""$person has page-visibility "{page_visibility.value}";""",
             f"""$person has post-visibility "{post_visibility.value}";""",
+            f"""$birth (born: $person) isa birth;""",
+            f"""$birth has birth-date {birth_date};""",
+            f"""$location (place: $place, located: $person) isa location;""",
+            f"""$birth-location (place: $birth-place, located: $birth) isa location;""",
         ))
 
         for language in languages:
@@ -345,16 +411,20 @@ class QueryBuilder:
             organisation_type: OrganisationType,
             name: str,
             bio: str,
+            location_id: str,
             tags: list[str],
             is_active: bool = True,
             is_visible: bool = True,
             can_publish: bool = True,
     ) -> str:
         username = "".join(name.split())
-        self._add_new_username(username)
+        self._add_new_organisation_username(username)
         profile_picture = self._get_new_media_id()
 
         queries = "# organisation\n" + " ".join((
+            f"""match""",
+            f"""$place isa place;""",
+            f"""$place has id "{location_id}";""",
             f"""insert""",
             f"""$organisation isa {organisation_type.value};""",
             f"""$organisation has username "{username}";""",
@@ -364,6 +434,7 @@ class QueryBuilder:
             f"""$person has is-active "{str(is_active).lower()}";""",
             f"""$person has is-visible "{str(is_visible).lower()}";""",
             f"""$person has can-publish "{str(can_publish).lower()}";""",
+            f"""$location (place: $place, located: $organisation) isa location;""",
         ))
 
         for tag in tags:
@@ -707,5 +778,81 @@ class QueryBuilder:
             name=name,
             parent_id=parent_id,
         )
+
+        return queries
+
+    def relationship(
+            self,
+            usernames: tuple[str, str] = None,
+            relationship_type: RelationshipStatus = None,
+            location_id: str = None,
+    ) -> str:
+        if usernames is None:
+            if len(self._in_relationships) > len(self._person_usernames) - 2:
+                raise RuntimeError("Relationships in user pool have been saturated.")
+
+            while True:
+                usernames = (self._get_random_person_username(), self._get_random_person_username())
+
+                if (
+                        usernames[0] != usernames[1]
+                        and usernames[0] not in self._in_relationships
+                        and usernames[1] not in self._in_relationships
+                ):
+                    break
+
+        for username in usernames:
+            if username in self._in_relationships:
+                message = f"Relationship between partner(s) already in relationships is being forcibly generated."
+                warn(message, RuntimeWarning)
+            else:
+                self._in_relationships.append(username)
+
+        if relationship_type is None:
+            possible_types = [RelationshipStatus.RELATIONSHIP, RelationshipStatus.ENGAGED, RelationshipStatus.MARRIED]
+            relationship_type = self._random.choice(possible_types)
+
+        if location_id is None:
+            location_id = self._random.choice(self._place_ids)
+
+        start_date = self._get_random_timestamp(TimestampFormat.DATE, start="2008-01-01", end="2025-01-01")
+
+        match_clause = "# relationship\n" + " ".join((
+            f"""match""",
+            f"""$partner-0 isa person;""",
+            f"""$partner-0 has id "{usernames[0]}";""",
+            f"""$partner-1 isa person;""",
+            f"""$partner-1 has id "{usernames[1]}";""",
+        ))
+
+        insert_clause = "# relationship\n" + " ".join((
+            f"""insert""",
+            f"""$relationship ({relationship_type.partner_role}: $partner-0, {relationship_type.partner_role}: $partner-1) isa {relationship_type.relationship_type};""",
+            f"""$relationship has {relationship_type.date_type} {start_date};""",
+            f"""$partner-0 has relationship-status "{relationship_type.value}";"""
+            f"""$partner-1 has relationship-status "{relationship_type.value}";"""
+        ))
+
+        if relationship_type in [RelationshipStatus.ENGAGED, RelationshipStatus.MARRIED]:
+            match_clause += f""" $place isa place; $place has id "{location_id}";"""
+            insert_clause += f""" $location (place: $place, located: $relationship) isa location;"""
+
+        queries = f"# relationship\n{match_clause} {insert_clause}"
+        return queries
+
+    def unknown_relationship_statuses(self) -> str:
+        queries = ""
+
+        for username in self._person_usernames:
+            if username not in self._in_relationships:
+                relationship_status = self._get_random_relationship_status()
+
+                queries += "# relationship status\n" + " ".join((
+                    f"""match""",
+                    f"""$person isa person;""",
+                    f"""$person has id "{username}";""",
+                    f"""insert""",
+                    f"""$person has relationship-status "{relationship_status.value}";""",
+                ))
 
         return queries
