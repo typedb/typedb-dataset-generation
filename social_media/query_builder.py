@@ -16,8 +16,14 @@ from social_media.enums import (
     PostType,
     PlaceType,
     OrganisationType,
-    RelationshipType,
+    SocialRelationType,
 )
+
+
+class SocialRelation:
+    def __init__(self, type: SocialRelationType, usernames: tuple[str, str]):
+        self.type = type
+        self.usernames = usernames
 
 
 class QueryBuilder:
@@ -41,7 +47,7 @@ class QueryBuilder:
         self._post_ids: list[str] = list()
         self._comment_ids: list[str] = list()
         self._place_ids: list[str] = list()
-        self._in_relationships: list[str] = list()
+        self._social_relations: list[SocialRelation] = list()
 
         with open("resources/female_names.yml", "r") as file:
             self._female_names: list[dict[str, Any]] = safe_load(file)
@@ -55,6 +61,19 @@ class QueryBuilder:
     @property
     def _usernames(self) -> list[str]:
         return self._person_usernames + self._organisation_usernames
+
+    def _get_social_relation_type(self, usernames: tuple[str, str]) -> SocialRelationType | None:
+        for relation in self._social_relations:
+            if usernames[0] in relation.usernames and usernames[1] in relation.usernames:
+                return relation.type
+
+        return None
+
+    def _relationship_count(self, username: str) -> int:
+        return len([relation for relation in self._social_relations if relation.type.is_relationship and username in relation.usernames])
+
+    def _parent_count(self, username: str) -> int:
+        return len([relation for relation in self._social_relations if relation.type is SocialRelationType.PARENTSHIP and relation.usernames[1] == username])
 
     def _get_new_uuid(self) -> str:
         return UUID(version=4, int=self._random.getrandbits(128)).hex
@@ -78,6 +97,9 @@ class QueryBuilder:
         place_id = f"{self._place_id_prefix}-{self._get_new_uuid()}"
         self._place_ids.append(place_id)
         return place_id
+
+    def _get_random_place_id(self) -> str:
+        return self._random.choice(self._place_ids)
 
     def _add_new_place_id(self, place_id) -> None:
         self._place_ids.append(place_id)
@@ -152,8 +174,8 @@ class QueryBuilder:
         domain = self._random.choice([domain.value for domain in EmailDomain])
         return f"{username}@{domain}"
 
-    def _get_random_relationship_type(self) -> RelationshipType:
-        return self._random.choice([type for type in RelationshipType])
+    def _get_random_social_relation_type(self) -> SocialRelationType:
+        return self._random.choice([type for type in SocialRelationType])
 
     def _get_random_relationship_status(self) -> RelationshipStatus:
         return self._random.choice([status for status in RelationshipStatus])
@@ -596,38 +618,40 @@ class QueryBuilder:
 
         return queries
 
-    def relationship(
+    def social_relation(
             self,
             usernames: tuple[str, str] = None,
-            relationship_type: RelationshipType = None,
+            relation_type: SocialRelationType = None,
             location_id: str = None,
-    ) -> str:
+    ):
+        if relation_type is None:
+            relation_type = self._get_random_social_relation_type()
+
         if usernames is None:
-            if len(self._in_relationships) > len(self._person_usernames) - 2:
-                raise RuntimeError("Relationships in user pool have been saturated.")
+            if len(self._social_relations) >= len(self._person_usernames) ** 2 - len(self._person_usernames):
+                raise RuntimeError("User pool has been saturated with possible social relations.")
 
             while True:
                 usernames = (self._get_random_person_username(), self._get_random_person_username())
 
-                if (
-                        usernames[0] != usernames[1]
-                        and usernames[0] not in self._in_relationships
-                        and usernames[1] not in self._in_relationships
-                ):
+                if usernames[0] != usernames[1] and self._get_social_relation_type(usernames) is None:
                     break
 
-        for username in usernames:
-            if username in self._in_relationships:
-                message = f"Relationship between partner(s) already in relationships is being forcibly generated."
-                warn(message, RuntimeWarning)
-            else:
-                self._in_relationships.append(username)
+        if self._get_social_relation_type(usernames) is not None:
+            message = f"Social relation between people already in a social relation is being forcibly generated."
+            warn(message, RuntimeWarning)
 
-        if relationship_type is None:
-            relationship_type = self._get_random_relationship_type()
+        for username in usernames:
+            if relation_type.is_relationship and self._relationship_count(username) >= 1:
+                message = f"Relationship between partner(s) already in other relationships is being forcibly generated."
+                warn(message, RuntimeWarning)
+
+        if relation_type is SocialRelationType.PARENTSHIP and self._parent_count(usernames[1]) >= 2:
+            message = f"Parentship for person already with two parents is being forcibly generated."
+            warn(message, RuntimeWarning)
 
         if location_id is None:
-            location_id = self._random.choice(self._place_ids)
+            location_id = self._get_random_place_id()
 
         start_date = self._get_random_timestamp(TimestampFormat.DATE, start=self._relationship_range[0], end=self._relationship_range[1])
 
@@ -641,13 +665,17 @@ class QueryBuilder:
 
         insert_clause = "# relationship\n" + " ".join((
             f"""insert""",
-            f"""$relationship ({relationship_type.role_first}: $partner-0, {relationship_type.role_second}: $partner-1) isa {relationship_type.value};""",
-            f"""$relationship has {relationship_type.date_type} {start_date};""",
-            f"""$partner-0 has relationship-status "{relationship_type.status.value}";"""
-            f"""$partner-1 has relationship-status "{relationship_type.status.value}";"""
+            f"""$social-relation ({relation_type.role_first}: $partner-0, {relation_type.role_second}: $partner-1) isa {relation_type.value};""",
         ))
 
-        if relationship_type.has_location:
+        if relation_type.is_relationship:
+            insert_clause += " " + " ".join((
+                f"""$social-relation has {relation_type.relationship_date_type} {start_date};""",
+                f"""$partner-0 has relationship-status "{relation_type.relationship_status.value}";"""
+                f"""$partner-1 has relationship-status "{relation_type.relationship_status.value}";"""
+            ))
+
+        if relation_type.has_location:
             match_clause += f""" $place isa place; $place has id "{location_id}";"""
             insert_clause += f""" $location (place: $place, located: $relationship) isa location;"""
 
@@ -658,7 +686,7 @@ class QueryBuilder:
         queries = ""
 
         for username in self._person_usernames:
-            if username not in self._in_relationships:
+            if self._relationship_count(username) == 0:
                 relationship_status = self._get_random_relationship_status()
 
                 queries += "# relationship status\n" + " ".join((

@@ -1,6 +1,7 @@
-from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from datetime import datetime
 from enum import Enum
+from typing import Self
 
 
 class NameType(Enum):
@@ -31,93 +32,95 @@ class RelationshipStatus(Enum):
     COMPLICATED = "complicated"
 
 
-class SocialRelation(ABC):
-    @property
-    @abstractmethod
-    def role_first(self) -> str:
-        ...
-
-    @property
-    @abstractmethod
-    def role_second(self) -> str:
-        ...
-
-
-class FamilyType(Enum, SocialRelation):
+class SocialRelationType(Enum):
+    FRIENDSHIP = "friendship"
     FAMILY = "family"
-    PARENT = "parentship"
-    SIBLING = "siblingship"
-
-    @property
-    def role_first(self) -> str:
-        match self:
-            case FamilyType.FAMILY:
-                return "relative"
-            case FamilyType.PARENT:
-                return "parent"
-            case FamilyType.SIBLING:
-                return "sibling"
-            case _:
-                raise RuntimeError()
-
-    @property
-    def role_second(self) -> str:
-        match self:
-            case FamilyType.FAMILY:
-                return self.role_first
-            case FamilyType.PARENT:
-                return "child"
-            case FamilyType.SIBLING:
-                return self.role_first
-            case _:
-                raise RuntimeError()
-
-
-class RelationshipType(Enum, SocialRelation):
+    PARENTSHIP = "parentship"
+    SIBLINGSHIP = "siblingship"
     RELATIONSHIP = "relationship"
     ENGAGEMENT = "engagement"
     MARRIAGE = "marriage"
 
     @property
+    def is_family(self) -> bool:
+        return self in [SocialRelationType.FAMILY, SocialRelationType.PARENTSHIP, SocialRelationType.SIBLINGSHIP]
+
+    @property
+    def is_relationship(self) -> bool:
+        return self in [SocialRelationType.RELATIONSHIP, SocialRelationType.ENGAGEMENT, SocialRelationType.MARRIAGE]
+
+    @classmethod
+    def family_types(cls) -> Iterator[Self]:
+        return (type for type in SocialRelationType if type.is_family)
+
+    @classmethod
+    def relationship_types(cls) -> Iterator[Self]:
+        return (type for type in SocialRelationType if type.is_relationship)
+
+    @property
     def role_first(self) -> str:
         match self:
-            case RelationshipType.RELATIONSHIP:
+            case SocialRelationType.FRIENDSHIP:
+                return "friend"
+            case SocialRelationType.FAMILY:
+                return "relative"
+            case SocialRelationType.PARENTSHIP:
+                return "parent"
+            case SocialRelationType.SIBLINGSHIP:
+                return "sibling"
+            case SocialRelationType.RELATIONSHIP:
                 return "partner"
-            case RelationshipType.ENGAGEMENT:
+            case SocialRelationType.ENGAGEMENT:
                 return "fiance"
-            case RelationshipType.MARRIAGE:
+            case SocialRelationType.MARRIAGE:
                 return "spouse"
             case _:
                 raise RuntimeError()
 
     @property
     def role_second(self) -> str:
-        return self.role_first
+        match self:
+            case SocialRelationType.FRIENDSHIP:
+                return self.role_first
+            case SocialRelationType.FAMILY:
+                return self.role_first
+            case SocialRelationType.PARENTSHIP:
+                return "child"
+            case SocialRelationType.SIBLINGSHIP:
+                return self.role_first
+            case SocialRelationType.RELATIONSHIP:
+                return self.role_first
+            case SocialRelationType.ENGAGEMENT:
+                return self.role_first
+            case SocialRelationType.MARRIAGE:
+                return self.role_first
+            case _:
+                raise RuntimeError()
 
     @property
-    def date_type(self) -> str:
+    def relationship_date_type(self) -> str:
         match self:
-            case RelationshipType.RELATIONSHIP:
+            case SocialRelationType.RELATIONSHIP:
                 return "start-date"
-            case RelationshipType.ENGAGEMENT:
+            case SocialRelationType.ENGAGEMENT:
                 return "engagement-date"
-            case RelationshipType.MARRIAGE:
+            case SocialRelationType.MARRIAGE:
                 return "marriage-date"
             case _:
                 raise RuntimeError()
 
     @property
     def has_location(self) -> bool:
-        return self in [RelationshipType.ENGAGEMENT, RelationshipType.MARRIAGE]
+        return self in [SocialRelationType.ENGAGEMENT, SocialRelationType.MARRIAGE]
 
     @property
-    def status(self) -> RelationshipStatus:
+    def relationship_status(self) -> RelationshipStatus:
         match self:
-            case RelationshipType.RELATIONSHIP:
+            case SocialRelationType.RELATIONSHIP:
                 return RelationshipStatus.RELATIONSHIP
-            case RelationshipType.ENGAGEMENT:
+            case SocialRelationType.ENGAGEMENT:
                 return RelationshipStatus.ENGAGED
-            case RelationshipType.MARRIAGE:
+            case SocialRelationType.MARRIAGE:
                 return RelationshipStatus.MARRIED
             case _:
                 raise RuntimeError()
