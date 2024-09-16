@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 
@@ -29,51 +30,91 @@ class RelationshipStatus(Enum):
     MARRIED = "married"
     COMPLICATED = "complicated"
 
+
+class SocialRelation(ABC):
     @property
-    def relationship_type(self) -> str:
+    @abstractmethod
+    def role_first(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def role_second(self) -> str:
+        ...
+
+
+class FamilyType(Enum, SocialRelation):
+    FAMILY = "family"
+    PARENT = "parentship"
+    SIBLING = "siblingship"
+
+    @property
+    def role_first(self) -> str:
         match self:
-            case RelationshipStatus.SINGLE:
-                raise ValueError()
-            case RelationshipStatus.RELATIONSHIP:
-                return "relationship"
-            case RelationshipStatus.ENGAGED:
-                return "engagement"
-            case RelationshipStatus.MARRIED:
-                return "marriage"
-            case RelationshipStatus.COMPLICATED:
-                raise ValueError()
+            case FamilyType.FAMILY:
+                return "relative"
+            case FamilyType.PARENT:
+                return "parent"
+            case FamilyType.SIBLING:
+                return "sibling"
+
+    @property
+    def role_second(self) -> str:
+        match self:
+            case FamilyType.FAMILY:
+                return self.role_first
+            case FamilyType.PARENT:
+                return "child"
+            case FamilyType.SIBLING:
+                return self.role_first
+
+
+class RelationshipType(Enum, SocialRelation):
+    RELATIONSHIP = "relationship"
+    ENGAGEMENT = "engagement"
+    MARRIAGE = "marriage"
+
+    @property
+    def role_first(self) -> str:
+        match self:
+            case RelationshipType.RELATIONSHIP:
+                return "partner"
+            case RelationshipType.ENGAGEMENT:
+                return "fiance"
+            case RelationshipType.MARRIAGE:
+                return "spouse"
             case _:
                 raise RuntimeError()
 
     @property
-    def partner_role(self) -> str:
-        match self:
-            case RelationshipStatus.SINGLE:
-                raise ValueError()
-            case RelationshipStatus.RELATIONSHIP:
-                return "partner"
-            case RelationshipStatus.ENGAGED:
-                return "fiance"
-            case RelationshipStatus.MARRIED:
-                return "spouse"
-            case RelationshipStatus.COMPLICATED:
-                raise ValueError()
-            case _:
-                raise RuntimeError()
+    def role_second(self) -> str:
+        return self.role_first
 
     @property
     def date_type(self) -> str:
         match self:
-            case RelationshipStatus.SINGLE:
-                raise ValueError()
-            case RelationshipStatus.RELATIONSHIP:
+            case RelationshipType.RELATIONSHIP:
                 return "start-date"
-            case RelationshipStatus.ENGAGED:
+            case RelationshipType.ENGAGEMENT:
                 return "engagement-date"
-            case RelationshipStatus.MARRIED:
+            case RelationshipType.MARRIAGE:
                 return "marriage-date"
-            case RelationshipStatus.COMPLICATED:
-                raise ValueError()
+            case _:
+                raise RuntimeError()
+
+    @property
+    def has_location(self) -> bool:
+        return self in [RelationshipType.ENGAGEMENT, RelationshipType.MARRIAGE]
+
+    @property
+    def status(self) -> RelationshipStatus:
+        match self:
+            case RelationshipType.RELATIONSHIP:
+                return RelationshipStatus.RELATIONSHIP
+            case RelationshipType.ENGAGEMENT:
+                return RelationshipStatus.ENGAGED
+            case RelationshipType.MARRIAGE:
+                return RelationshipStatus.MARRIED
             case _:
                 raise RuntimeError()
 

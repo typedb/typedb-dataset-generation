@@ -16,6 +16,7 @@ from social_media.enums import (
     PostType,
     PlaceType,
     OrganisationType,
+    RelationshipType,
 )
 
 
@@ -148,6 +149,9 @@ class QueryBuilder:
     def _get_new_email(self, username: str) -> str:
         domain = self._random.choice([domain.value for domain in EmailDomain])
         return f"{username}@{domain}"
+
+    def _get_random_relationship_type(self) -> RelationshipType:
+        return self._random.choice([type for type in RelationshipType])
 
     def _get_random_relationship_status(self) -> RelationshipStatus:
         return self._random.choice([status for status in RelationshipStatus])
@@ -593,7 +597,7 @@ class QueryBuilder:
     def relationship(
             self,
             usernames: tuple[str, str] = None,
-            relationship_type: RelationshipStatus = None,
+            relationship_type: RelationshipType = None,
             location_id: str = None,
     ) -> str:
         if usernames is None:
@@ -618,8 +622,7 @@ class QueryBuilder:
                 self._in_relationships.append(username)
 
         if relationship_type is None:
-            possible_types = [RelationshipStatus.RELATIONSHIP, RelationshipStatus.ENGAGED, RelationshipStatus.MARRIED]
-            relationship_type = self._random.choice(possible_types)
+            relationship_type = self._get_random_relationship_type()
 
         if location_id is None:
             location_id = self._random.choice(self._place_ids)
@@ -636,13 +639,13 @@ class QueryBuilder:
 
         insert_clause = "# relationship\n" + " ".join((
             f"""insert""",
-            f"""$relationship ({relationship_type.partner_role}: $partner-0, {relationship_type.partner_role}: $partner-1) isa {relationship_type.relationship_type};""",
+            f"""$relationship ({relationship_type.role_first}: $partner-0, {relationship_type.role_second}: $partner-1) isa {relationship_type.value};""",
             f"""$relationship has {relationship_type.date_type} {start_date};""",
-            f"""$partner-0 has relationship-status "{relationship_type.value}";"""
-            f"""$partner-1 has relationship-status "{relationship_type.value}";"""
+            f"""$partner-0 has relationship-status "{relationship_type.status.value}";"""
+            f"""$partner-1 has relationship-status "{relationship_type.status.value}";"""
         ))
 
-        if relationship_type in [RelationshipStatus.ENGAGED, RelationshipStatus.MARRIED]:
+        if relationship_type.has_location:
             match_clause += f""" $place isa place; $place has id "{location_id}";"""
             insert_clause += f""" $location (place: $place, located: $relationship) isa location;"""
 
