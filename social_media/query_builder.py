@@ -154,6 +154,15 @@ class PlaceType(Enum):
                 return "landmark"
 
 
+class OrganisationType(Enum):
+    COMPANY = "company"
+    CHARITY = "charity"
+    INSTITUTE = "educational-institute"
+    SCHOOL = "school"
+    COLLEGE = "college"
+    UNIVERSITY = "university"
+
+
 class QueryBuilder:
     _username_suffix_digits = 3
     _group_id_prefix = "grp"
@@ -268,6 +277,9 @@ class QueryBuilder:
                 self._usernames.append(username)
                 return username
 
+    def _add_new_username(self, username: str) -> None:
+        self._usernames.append(username)
+
     def _get_new_email(self, username: str) -> str:
         domain = self._random.choice([domain.value for domain in EmailDomain])
         return f"{username}@{domain}"
@@ -325,6 +337,37 @@ class QueryBuilder:
 
         for language in languages:
             queries += f""" $person has language "{language}";"""
+
+        return queries
+
+    def organisation(
+            self,
+            organisation_type: OrganisationType,
+            name: str,
+            bio: str,
+            tags: list[str],
+            is_active: bool = True,
+            is_visible: bool = True,
+            can_publish: bool = True,
+    ) -> str:
+        username = "".join(name.split())
+        self._add_new_username(username)
+        profile_picture = self._get_new_media_id()
+
+        queries = "# organisation\n" + " ".join((
+            f"""insert""",
+            f"""$organisation isa {organisation_type.value};""",
+            f"""$organisation has username "{username}";""",
+            f"""$organisation has name "{name}";""",
+            f"""$organisation has bio "{bio}";""",
+            f"""$organisation has profile-picture"{profile_picture}";""",
+            f"""$person has is-active "{str(is_active).lower()}";""",
+            f"""$person has is-visible "{str(is_visible).lower()}";""",
+            f"""$person has can-publish "{str(can_publish).lower()}";""",
+        ))
+
+        for tag in tags:
+            queries += f""" $organisation has tag "{tag}";"""
 
         return queries
 
