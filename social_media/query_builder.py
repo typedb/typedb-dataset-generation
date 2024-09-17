@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from random import Random
@@ -18,6 +19,7 @@ from enums import (
     PlaceType,
     OrganisationType,
     SocialRelationType,
+    PageType,
 )
 
 
@@ -37,7 +39,7 @@ class Place:
 @dataclass
 class SocialRelation:
     type: SocialRelationType
-    usernames: tuple[str, str]
+    persons: tuple[Page, Page]
 
 
 class QueryBuilder:
@@ -55,14 +57,11 @@ class QueryBuilder:
 
     def __init__(self, seed=0):
         self._random = Random(seed)
-        self._person_usernames: list[str] = list()
-        self._organisation_usernames: list[str] = list()
-        self._group_ids: list[str] = list()
-        self._post_ids: list[str] = list()
-        self._comment_ids: list[str] = list()
         self._pages: dict[str, Page] = dict()
         self._places: dict[str, Place] = dict()
         self._social_relations: list[SocialRelation] = list()
+        self._post_ids: list[str] = list()
+        self._comment_ids: list[str] = list()
 
         with open("resources/female_names.yml", "r") as file:
             self._female_names: list[dict[str, Any]] = safe_load(file)
@@ -74,28 +73,39 @@ class QueryBuilder:
             self._last_names: list[dict[str, Any]] = safe_load(file)
 
     @property
-    def _usernames(self) -> list[str]:
-        return self._person_usernames + self._organisation_usernames
+    def _persons(self) -> Iterator[Page]:
+        return (page for page in self._pages.values() if page.type is PageType.PERSON)
 
-    def _get_social_relation_type(self, usernames: tuple[str, str]) -> SocialRelationType | None:
+    @property
+    def _organisations(self) -> Iterator[Page]:
+        return (page for page in self._pages.values() if page.type.is_organisation)
+
+    @property
+    def _groups(self) -> Iterator[Page]:
+        return (page for page in self._pages.values() if page.type is PageType.GROUP)
+
+    @property
+    def _profiles(self) -> Iterator[Page]:
+        return (page for page in self._pages.values() if page.type.is_profile)
+
+    def _get_social_relation_type(self, persons: tuple[Page, Page]) -> SocialRelationType | None:
         for relation in self._social_relations:
-            if usernames[0] in relation.usernames and usernames[1] in relation.usernames:
+            if persons[0] in relation.persons and persons[1] in relation.persons:
                 return relation.type
 
         return None
 
-    def _relationship_count(self, username: str) -> int:
-        return len([relation for relation in self._social_relations if relation.type.is_relationship and username in relation.usernames])
+    def _relationship_count(self, person: Page) -> int:
+        return len([relation for relation in self._social_relations if relation.type.is_relationship and person in relation.persons])
 
-    def _parent_count(self, username: str) -> int:
-        return len([relation for relation in self._social_relations if relation.type is SocialRelationType.PARENTSHIP and relation.usernames[1] == username])
+    def _parent_count(self, person: Page) -> int:
+        return len([relation for relation in self._social_relations if relation.type is SocialRelationType.PARENTSHIP and relation.persons[1] == person])
 
     def _get_new_uuid(self) -> str:
         return UUID(version=4, int=self._random.getrandbits(128)).hex
 
     def _get_new_group_id(self) -> str:
         group_id = f"{self._group_id_prefix}-{self._get_new_uuid()}"
-        self._group_ids.append(group_id)
         return group_id
 
     def _get_new_post_id(self) -> str:
@@ -165,7 +175,7 @@ class QueryBuilder:
             return Gender.FEMALE
 
     def _get_new_person_username(self, name: str) -> str:
-        if len(self._person_usernames) >= self._username_warning_threshold:
+        if len(list(self._persons)) >= self._username_warning_threshold:
             message = " ".join((
                 f"The number of usernames generated has exceeded {self._username_warning_threshold}.",
                 f"This has a small chance to deadlock the query builder if generation continues significantly.",
@@ -179,15 +189,11 @@ class QueryBuilder:
             number_part = "".join(str(self._random.randint(0, 9)) for _ in range(self._username_suffix_digits))
             username = name_part + number_part
 
-            if username not in self._person_usernames:
-                self._person_usernames.append(username)
+            if username not in (person.id for person in self._persons):
                 return username
 
-    def _get_random_person_username(self) -> str:
-        return self._random.choice(self._person_usernames)
-
-    def _add_new_organisation_username(self, username: str) -> None:
-        self._organisation_usernames.append(username)
+    def _get_random_person(self) -> Page:
+        return self._random.choice(list(self._persons))
 
     def _get_new_email(self, username: str) -> str:
         domain = self._random.choice([domain.value for domain in EmailDomain])
@@ -231,6 +237,7 @@ class QueryBuilder:
         email = self._get_new_email(username)
         profile_picture = self._get_new_media_id()
         birth_date = self._get_random_timestamp(TimestampFormat.DATE, start=self._birth_range[0], end=self._birth_range[1])
+        self._pages[username] = Page(PageType.PERSON, username)
 
         if location_id is None:
             location_id = self._get_random_place(PlaceType.CITY).id
@@ -280,7 +287,7 @@ class QueryBuilder:
             can_publish: bool = True,
     ) -> str:
         username = "".join(name.split())
-        self._add_new_organisation_username(username)
+        self._pages[username] = Page(organisation_type.page_type, username)
         profile_picture = self._get_new_media_id()
 
         if location_id is None:
@@ -320,6 +327,7 @@ class QueryBuilder:
     ) -> str:
         group_id = self._get_new_group_id()
         profile_picture = self._get_new_media_id()
+        self._pages[group_id] = Page(PageType.GROUP, group_id)
 
         queries = "# group\n" + " ".join((
             f"""insert""",
@@ -663,25 +671,27 @@ class QueryBuilder:
             relation_type = self._get_random_social_relation_type()
 
         if usernames is None:
-            if len(self._social_relations) >= len(self._person_usernames) ** 2 - len(self._person_usernames):
+            if len(self._social_relations) >= len(list(self._persons)) ** 2 - len(list(self._persons)):
                 raise RuntimeError("User pool has been saturated with possible social relations.")
 
             while True:
-                usernames = (self._get_random_person_username(), self._get_random_person_username())
+                persons = (self._get_random_person(), self._get_random_person())
 
-                if usernames[0] != usernames[1] and self._get_social_relation_type(usernames) is None:
+                if persons[0].id != persons[1].id and self._get_social_relation_type(persons) is None:
                     break
+        else:
+            persons = self._pages[usernames[0]], self._pages[usernames[1]]
 
-        if self._get_social_relation_type(usernames) is not None:
+        if self._get_social_relation_type(persons) is not None:
             message = f"Social relation between people already in a social relation is being forcibly generated."
             warn(message, RuntimeWarning)
 
-        for username in usernames:
-            if relation_type.is_relationship and self._relationship_count(username) >= 1:
+        for person in persons:
+            if relation_type.is_relationship and self._relationship_count(person) >= 1:
                 message = f"Relationship between partner(s) already in other relationships is being forcibly generated."
                 warn(message, RuntimeWarning)
 
-        if relation_type is SocialRelationType.PARENTSHIP and self._parent_count(usernames[1]) >= 2:
+        if relation_type is SocialRelationType.PARENTSHIP and self._parent_count(persons[1]) >= 2:
             message = f"Parentship for person already with two parents is being forcibly generated."
             warn(message, RuntimeWarning)
 
@@ -689,14 +699,14 @@ class QueryBuilder:
             location_id = self._get_random_place(PlaceType.CITY).id
 
         start_date = self._get_random_timestamp(TimestampFormat.DATE, start=self._relationship_range[0], end=self._relationship_range[1])
-        self._social_relations.append(SocialRelation(relation_type, usernames))
+        self._social_relations.append(SocialRelation(relation_type, persons))
 
         match_clause = "# relationship\n" + " ".join((
             f"""match""",
             f"""$partner-0 isa person;""",
-            f"""$partner-0 has id "{usernames[0]}";""",
+            f"""$partner-0 has id "{persons[0].id}";""",
             f"""$partner-1 isa person;""",
-            f"""$partner-1 has id "{usernames[1]}";""",
+            f"""$partner-1 has id "{persons[1].id}";""",
         ))
 
         insert_clause = "# relationship\n" + " ".join((
@@ -721,14 +731,14 @@ class QueryBuilder:
     def unknown_relationship_statuses(self) -> str:
         queries = ""
 
-        for username in self._person_usernames:
-            if self._relationship_count(username) == 0:
+        for person in self._persons:
+            if self._relationship_count(person) == 0:
                 relationship_status = self._get_random_relationship_status()
 
                 queries += "# relationship status\n" + " ".join((
                     f"""match""",
                     f"""$person isa person;""",
-                    f"""$person has id "{username}";""",
+                    f"""$person has id "{person.id}";""",
                     f"""insert""",
                     f"""$person has relationship-status "{relationship_status.value}";""",
                 ))
