@@ -137,7 +137,7 @@ class QueryBuilder:
 
         return None
 
-    def _get_group_members(self, group: Page) -> Iterator[Page]:
+    def _get_members(self, group: Page) -> Iterator[Page]:
         for membership in self._group_memberships:
             if group is membership.group:
                 yield membership.member
@@ -717,28 +717,28 @@ class QueryBuilder:
             location_id: str = None,
     ):
         if usernames is None:
-            person_choices = list(
+            choices = list(
                 persons for persons in product(self._persons, self._persons)
                 if persons[0] != persons[1] and self._get_social_relation(persons) is None
             )
 
-            if len(person_choices) == 0:
+            if len(choices) == 0:
                 raise RuntimeError("User pool has been saturated with plausible social relations.")
 
-            persons = self._random.choice(person_choices)
+            persons = self._random.choice(choices)
         else:
             persons = self._pages[usernames[0]], self._pages[usernames[1]]
 
         if relation_type is None:
-            relation_type_choices = [SocialRelationType.FRIENDSHIP, SocialRelationType.FAMILY, SocialRelationType.SIBLINGSHIP]
+            choices = [SocialRelationType.FRIENDSHIP, SocialRelationType.FAMILY, SocialRelationType.SIBLINGSHIP]
 
             if self._parent_count(persons[1]) < 2:
-                relation_type_choices += [SocialRelationType.PARENTSHIP]
+                choices += [SocialRelationType.PARENTSHIP]
 
             if all(self._relationship_count(person) == 0 for person in persons):
-                relation_type_choices += [SocialRelationType.RELATIONSHIP, SocialRelationType.ENGAGEMENT, SocialRelationType.MARRIAGE]
+                choices += [SocialRelationType.RELATIONSHIP, SocialRelationType.ENGAGEMENT, SocialRelationType.MARRIAGE]
 
-            relation_type = self._random.choice(relation_type_choices)
+            relation_type = self._random.choice(choices)
 
         if self._get_social_relation(persons) is not None:
             message = f"Social relation between people already in a social relation is being forcibly generated."
@@ -812,8 +812,7 @@ class QueryBuilder:
             start_date = self._get_random_timestamp(TimestampFormat.DATE, self._education_range)
             end_date = self._get_random_timestamp(TimestampFormat.DATE, range=(start_date, self._education_range[1]))
         else:
-            start_date = date_range[0]
-            end_date = date_range[1]
+            start_date, end_date = date_range
 
         self._educations.append(Education(institute, person))
 
@@ -863,8 +862,7 @@ class QueryBuilder:
             start_date = self._get_random_timestamp(TimestampFormat.DATE, self._employment_range)
             end_date = None
         else:
-            start_date = date_range[0]
-            end_date = date_range[1]
+            start_date, end_date = date_range
 
         self._employments.append(Employment(organisation, person))
 
@@ -887,7 +885,7 @@ class QueryBuilder:
 
         return queries
 
-    def unknown_relationship_statuses(self) -> str:
+    def unset_relationship_statuses(self) -> str:
         queries = ""
 
         for person in self._persons:
