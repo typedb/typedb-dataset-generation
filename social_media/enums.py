@@ -311,3 +311,24 @@ class OrganisationType(Enum):
                 return PageType.UNIVERSITY
             case _:
                 raise RuntimeError()
+
+
+class InstituteType(Enum):
+    INSTITUTE = "educational-institute"
+    SCHOOL = "school"
+    COLLEGE = "college"
+    UNIVERSITY = "university"
+
+    @property
+    def page_type(self) -> PageType:
+        match self:
+            case InstituteType.INSTITUTE:
+                return PageType.INSTITUTE
+            case InstituteType.SCHOOL:
+                return PageType.SCHOOL
+            case InstituteType.COLLEGE:
+                return PageType.COLLEGE
+            case InstituteType.UNIVERSITY:
+                return PageType.UNIVERSITY
+            case _:
+                raise RuntimeError()
