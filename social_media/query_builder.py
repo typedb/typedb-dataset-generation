@@ -19,7 +19,9 @@ from enums import (
     PlaceType,
     OrganisationType,
     SocialRelationType,
-    PageType, InstituteType,
+    PageType,
+    InstituteType,
+    GroupMemberRank,
 )
 
 
@@ -71,7 +73,7 @@ class QueryBuilder:
     _social_relation_range = ("2003-01-01", "2025-01-01")
     _education_range = ("2003-01-01", "2008-01-01")
     _employment_range = ("2008-01-01", "2025-01-01")
-    _post_range = ("2020-01-01", "2025-01-01")
+    _post_range = ("2020-01-01T00:00:00.000", "2025-01-01T00:00:00.000")
     _start_year = 2020
     _end_year = 2024
     _username_warning_threshold = 10 ** _username_suffix_digits
@@ -881,6 +883,58 @@ class QueryBuilder:
 
         if description is not None:
             queries += f""" $employment has description {description};"""
+
+        return queries
+
+    def group_membership(
+            self,
+            username: str = None,
+            group_id: str = None,
+            timestamp_range: tuple[str, str | None] = None,
+            rank: GroupMemberRank = None,
+            badges: list[str] = [],
+    ) -> str:
+        if group_id is None:
+            group = self._random.choice(list(group for group in self._groups))
+        else:
+            group = self._pages[group_id]
+
+        if username is None:
+            choices = list(profile for profile in self._profiles if profile not in self._get_members(group))
+
+            if len(choices) == 0:
+                raise RuntimeError("Group is saturated with members.")
+
+            profile = self._random.choice(choices)
+        else:
+            profile = self._pages[username]
+
+        if timestamp_range is None:
+            start_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, self._post_range)
+            end_timestamp = None
+        else:
+            start_timestamp, end_timestamp = timestamp_range
+
+        if rank is None:
+            rank = self._random.choice(list(rank for rank in GroupMemberRank))
+
+        queries = "# group membership\n" + " ".join((
+            f"""match""",
+            f"""$profile isa profile;""",
+            f"""$profile has id "{profile.id}";""",
+            f"""$group isa group;""",
+            f"""$group has id "{group.id}";""",
+            f"""insert""",
+            f"""$membership (group: $group, member: $profile) isa group-membership;""",
+            f"""$membership has start-timestamp {start_timestamp};""",
+            f"""$membership has rank "{rank.value}";""",
+        ))
+
+        if end_timestamp is not None:
+            queries += f""" $membership has end-timestamp {end_timestamp};"""
+
+        for badge in badges:
+            queries += f""" $membership has badge "{badge}";"""
 
         return queries
 
