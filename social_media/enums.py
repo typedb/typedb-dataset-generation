@@ -139,7 +139,7 @@ class TimestampFormat(Enum):
             case TimestampFormat.DATETIME:
                 return "%Y-%m-%dT%H:%M:%S"
             case TimestampFormat.PRECISE_DATETIME:
-                return "%Y-%m-$dT%H:%M:%S.%f"
+                return "%Y-%m-%dT%H:%M:%S.%f"
             case _:
                 raise RuntimeError()
 
