@@ -10,7 +10,7 @@ class AbstractEnumMeta(ABCMeta, EnumMeta):
     pass
 
 
-class DistributedEnum(ABC, Enum, metaclass=AbstractEnumMeta):
+class WeightedEnum(ABC, Enum, metaclass=AbstractEnumMeta):
     @property
     @abstractmethod
     def weight(self) -> float:
@@ -38,7 +38,7 @@ class NameType(Enum):
     FULL = "full"
 
 
-class Gender(DistributedEnum):
+class Gender(WeightedEnum):
     FEMALE = "female"
     MALE = "male"
     OTHER = "other"
@@ -56,7 +56,7 @@ class Gender(DistributedEnum):
                 raise RuntimeError()
 
 
-class EmailDomain(DistributedEnum):
+class EmailDomain(WeightedEnum):
     GOOGLE = "gmail.com"
     MICROSOFT = "outlook.com"
     PROTON = "proton.me"
@@ -78,7 +78,7 @@ class EmailDomain(DistributedEnum):
                 return 5.0
 
 
-class RelationshipStatus(DistributedEnum):
+class RelationshipStatus(WeightedEnum):
     SINGLE = "single"
     RELATIONSHIP = "relationship"
     ENGAGED = "engaged"
@@ -100,7 +100,7 @@ class RelationshipStatus(DistributedEnum):
                 return 5.0
 
 
-class SocialRelationType(DistributedEnum):
+class SocialRelationType(WeightedEnum):
     FRIENDSHIP = "friendship"
     FAMILY = "family"
     PARENTSHIP = "parentship"
@@ -244,7 +244,7 @@ class TimestampFormat(Enum):
         return string
 
 
-class GroupMemberRank(DistributedEnum):
+class GroupMemberRank(WeightedEnum):
     MEMBER = "member"
     MODERATOR = "moderator"
     ADMIN = "admin"
@@ -263,7 +263,7 @@ class GroupMemberRank(DistributedEnum):
                 return 0.0
 
 
-class Emoji(DistributedEnum):
+class Emoji(WeightedEnum):
     LIKE = "like"
     LOVE = "love"
     FUNNY = "funny"
