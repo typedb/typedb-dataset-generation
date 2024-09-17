@@ -416,10 +416,10 @@ queries = [
     ),
 ]
 
-with open("res/copyright_statement.txt", "r") as copyright_file:
+with open("resources/copyright_statement.txt", "r") as copyright_file:
     copyright_statement = copyright_file.read()
 
-with open("queries.tql", "w") as output_file:
+with open("bookstore/queries.tql", "w") as output_file:
     output_file.write(copyright_statement + "\n")
 
     for query in queries:
