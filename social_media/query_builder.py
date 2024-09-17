@@ -60,6 +60,7 @@ class Employment:
 class GroupMembership:
     group: Page
     member: Page
+    rank: GroupMemberRank
 
 
 class QueryBuilder:
@@ -150,6 +151,13 @@ class QueryBuilder:
     def _parent_count(self, person: Page) -> int:
         return len([relation for relation in self._social_relations if relation.type is SocialRelationType.PARENTSHIP and relation.persons[1] == person])
 
+    def _has_owner(self, group: Page) -> bool:
+        for membership in self._group_memberships:
+            if membership.group is group and membership.rank is GroupMemberRank.OWNER:
+                return True
+
+        return False
+
     def _generate_new_uuid(self) -> str:
         return UUID(version=4, int=self._random.getrandbits(128)).hex
 
@@ -221,7 +229,7 @@ class QueryBuilder:
                     case Gender.MALE:
                         return self._choose_random_name(self._male_names)
                     case Gender.OTHER:
-                        gender = self._random.choice((Gender.FEMALE, Gender.MALE))
+                        gender = self._random.choice([Gender.FEMALE, Gender.MALE])
                         return self._generate_new_name(NameType.FIRST, gender)
                     case _:
                         raise RuntimeError()
@@ -261,7 +269,7 @@ class QueryBuilder:
                 return username
 
     def _generate_new_email(self, username: str) -> str:
-        domain = self._random.choice([domain.value for domain in EmailDomain])
+        domain = EmailDomain.choose(self._random)
         return f"{username}@{domain}"
 
     def _get_random_timestamp(self, format: TimestampFormat, range: tuple[str, str]) -> str:
@@ -372,7 +380,6 @@ class QueryBuilder:
             tags: list[str],
             is_active: bool = True,
             is_visible: bool = True,
-            can_publish: bool = True,
             page_visibility: PageVisibility = PageVisibility.PUBLIC,
             post_visibility: PageVisibility = PostVisibility.PUBLIC,
     ) -> str:
@@ -718,7 +725,7 @@ class QueryBuilder:
             location_id: str = None,
     ):
         if usernames is None:
-            choices = list(
+            choices: list[tuple[Page, Page]] = list(
                 persons for persons in product(self._persons, self._persons)
                 if persons[0] != persons[1] and self._get_social_relation(persons) is None
             )
@@ -731,7 +738,7 @@ class QueryBuilder:
             persons = self._pages[usernames[0]], self._pages[usernames[1]]
 
         if relation_type is None:
-            choices = [SocialRelationType.FRIENDSHIP, SocialRelationType.FAMILY, SocialRelationType.SIBLINGSHIP]
+            choices: list[SocialRelationType] = [SocialRelationType.FRIENDSHIP, SocialRelationType.FAMILY, SocialRelationType.SIBLINGSHIP]
 
             if self._parent_count(persons[1]) < 2:
                 choices += [SocialRelationType.PARENTSHIP]
@@ -739,7 +746,7 @@ class QueryBuilder:
             if all(self._relationship_count(person) == 0 for person in persons):
                 choices += [SocialRelationType.RELATIONSHIP, SocialRelationType.ENGAGEMENT, SocialRelationType.MARRIAGE]
 
-            relation_type = self._random.choice(choices)
+            relation_type = SocialRelationType.choose(self._random, choices)
 
         if self._get_social_relation(persons) is not None:
             message = f"Social relation between people already in a social relation is being forcibly generated."
@@ -916,7 +923,12 @@ class QueryBuilder:
             start_timestamp, end_timestamp = timestamp_range
 
         if rank is None:
-            rank = self._random.choice(list(rank for rank in GroupMemberRank))
+            if not self._has_owner(group):
+                rank = GroupMemberRank.OWNER
+            else:
+                rank = GroupMemberRank.choose(self._random)
+
+        self._group_memberships.append(GroupMembership(group, profile, rank))
 
         queries = "# group membership\n" + " ".join((
             f"""match""",
@@ -943,7 +955,7 @@ class QueryBuilder:
 
         for person in self._persons:
             if self._relationship_count(person) == 0:
-                relationship_status = self._random.choice([status for status in RelationshipStatus])
+                relationship_status = RelationshipStatus.choose(self._random)
 
                 queries += "# relationship status\n" + " ".join((
                     f"""match""",

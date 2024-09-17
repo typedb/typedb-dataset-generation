@@ -1,7 +1,35 @@
+from abc import ABC, abstractmethod, ABCMeta
 from collections.abc import Iterator
 from datetime import datetime
-from enum import Enum
+from enum import Enum, EnumMeta
+from random import Random
 from typing import Self
+
+
+class AbstractEnumMeta(ABCMeta, EnumMeta):
+    pass
+
+
+class DistributedEnum(ABC, Enum, metaclass=AbstractEnumMeta):
+    @property
+    @abstractmethod
+    def weight(self) -> float:
+        ...
+
+    @classmethod
+    def choose(cls, random: Random, choices: list[Self] = None) -> Self:
+        if choices is None:
+            choices = list(member for member in cls)
+
+        bound = sum(value.weight for value in choices)
+        draw = random.uniform(0.0, bound)
+        cumulative = 0.0
+
+        for choice in choices:
+            cumulative += choice.weight
+
+            if cumulative >= draw:
+                return choice
 
 
 class NameType(Enum):
@@ -10,29 +38,69 @@ class NameType(Enum):
     FULL = "full"
 
 
-class Gender(Enum):
+class Gender(DistributedEnum):
     FEMALE = "female"
     MALE = "male"
     OTHER = "other"
 
+    @property
+    def weight(self) -> float:
+        match self:
+            case Gender.FEMALE:
+                return 50.0
+            case Gender.MALE:
+                return 45.0
+            case Gender.OTHER:
+                return 5.0
+            case _:
+                raise RuntimeError()
 
-class EmailDomain(Enum):
+
+class EmailDomain(DistributedEnum):
     GOOGLE = "gmail.com"
     MICROSOFT = "outlook.com"
     PROTON = "proton.me"
     AOL = "aol.com"
     YAHOO = "yahoo.com"
 
+    @property
+    def weight(self) -> float:
+        match self:
+            case EmailDomain.GOOGLE:
+                return 50.0
+            case EmailDomain.MICROSOFT:
+                return 30.0
+            case EmailDomain.PROTON:
+                return 10.0
+            case EmailDomain.AOL:
+                return 5.0
+            case EmailDomain.YAHOO:
+                return 5.0
 
-class RelationshipStatus(Enum):
+
+class RelationshipStatus(DistributedEnum):
     SINGLE = "single"
     RELATIONSHIP = "relationship"
     ENGAGED = "engaged"
     MARRIED = "married"
     COMPLICATED = "complicated"
 
+    @property
+    def weight(self) -> float:
+        match self:
+            case RelationshipStatus.SINGLE:
+                return 20.0
+            case RelationshipStatus.RELATIONSHIP:
+                return 40.0
+            case RelationshipStatus.ENGAGED:
+                return 5.0
+            case RelationshipStatus.MARRIED:
+                return 30.0
+            case RelationshipStatus.COMPLICATED:
+                return 5.0
 
-class SocialRelationType(Enum):
+
+class SocialRelationType(DistributedEnum):
     FRIENDSHIP = "friendship"
     FAMILY = "family"
     PARENTSHIP = "parentship"
@@ -40,6 +108,24 @@ class SocialRelationType(Enum):
     RELATIONSHIP = "relationship"
     ENGAGEMENT = "engagement"
     MARRIAGE = "marriage"
+
+    @property
+    def weight(self) -> float:
+        match self:
+            case SocialRelationType.FRIENDSHIP:
+                return 70.0
+            case SocialRelationType.FAMILY:
+                return 3.0
+            case SocialRelationType.PARENTSHIP:
+                return 3.0
+            case SocialRelationType.SIBLINGSHIP:
+                return 3.0
+            case SocialRelationType.RELATIONSHIP:
+                return 15.0
+            case SocialRelationType.ENGAGEMENT:
+                return 3.0
+            case SocialRelationType.MARRIAGE:
+                return 3.0
 
     @property
     def is_family(self) -> bool:
@@ -158,20 +244,48 @@ class TimestampFormat(Enum):
         return string
 
 
-class GroupMemberRank(Enum):
+class GroupMemberRank(DistributedEnum):
     MEMBER = "member"
     MODERATOR = "moderator"
     ADMIN = "admin"
     OWNER = "owner"
 
+    @property
+    def weight(self) -> float:
+        match self:
+            case GroupMemberRank.MEMBER:
+                return 85.0
+            case GroupMemberRank.MODERATOR:
+                return 10.0
+            case GroupMemberRank.ADMIN:
+                return 5.0
+            case GroupMemberRank.OWNER:
+                return 0.0
 
-class Emoji(Enum):
+
+class Emoji(DistributedEnum):
     LIKE = "like"
     LOVE = "love"
     FUNNY = "funny"
     SURPRISE = "surprise"
     SAD = "sad"
     ANGRY = "angry"
+
+    @property
+    def weight(self) -> float:
+        match self:
+            case Emoji.LIKE:
+                return 60.0
+            case Emoji.LOVE:
+                return 10.0
+            case Emoji.FUNNY:
+                return 10.0
+            case Emoji.SURPRISE:
+                return 10.0
+            case Emoji.SAD:
+                return 5.0
+            case Emoji.ANGRY:
+                return 5.0
 
 
 class PageVisibility(Enum):
