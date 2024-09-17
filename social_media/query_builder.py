@@ -385,9 +385,8 @@ class QueryBuilder:
             f"""$group has name "{name}";""",
             f"""$group has bio "{bio}";""",
             f"""$group has profile-picture "{profile_picture}";""",
-            f"""$group has is-active "{str(is_active).lower()}";""",
-            f"""$group has is-visible "{str(is_visible).lower()}";""",
-            f"""$group has can-publish "{str(can_publish).lower()}";""",
+            f"""$group has is-active {str(is_active).lower()};""",
+            f"""$group has is-visible {str(is_visible).lower()};""",
             f"""$group has page-visibility "{page_visibility.value}";""",
             f"""$group has post-visibility "{post_visibility.value}";""",
         ))
