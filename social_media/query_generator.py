@@ -119,16 +119,22 @@ queries = [
     query_builder.organisation(OrganisationType.UNIVERSITY, "Westbridge University", "test bio", ["test tag"]),
     query_builder.organisation(OrganisationType.UNIVERSITY, "Oakwood Institute of Technology", "test bio", ["test tag"]),
     query_builder.organisation(OrganisationType.UNIVERSITY, "Riverford University", "test bio", ["test tag"]),
+    query_builder.group("The Urban Explorers Collective", "test bio", ["test tag"]),
+    query_builder.group("Eco Warriors Network", "test bio", ["test tag"]),
+    query_builder.group("The Coffee Connoisseurs Club", "test bio", ["test tag"]),
+    query_builder.group("Digital Nomads Hub", "test bio", ["test tag"]),
+    query_builder.group("Vintage Car Enthusiasts Society", "test bio", ["test tag"]),
 ]
 
+for _ in range(30):
+    queries.append(query_builder.education())
+    queries.append(query_builder.employment())
 
+for _ in range(50):
+    queries.append(query_builder.group_membership())
 
-
-
-
-
-
-
+for _ in range(200):
+    queries.append(query_builder.social_relation())
 
 with open("resources/copyright_statement.txt", "r") as copyright_file:
     copyright_statement = copyright_file.read()
