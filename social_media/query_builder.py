@@ -20,10 +20,17 @@ from social_media.enums import (
 )
 
 
+@dataclass
+class Place:
+    type: PlaceType
+    id: str
+    parent: Self = None
+
+
+@dataclass
 class SocialRelation:
-    def __init__(self, type: SocialRelationType, usernames: tuple[str, str]):
-        self.type = type
-        self.usernames = usernames
+    type: SocialRelationType
+    usernames: tuple[str, str]
 
 
 class QueryBuilder:
@@ -46,7 +53,7 @@ class QueryBuilder:
         self._group_ids: list[str] = list()
         self._post_ids: list[str] = list()
         self._comment_ids: list[str] = list()
-        self._place_ids: list[str] = list()
+        self._places: dict[str, Place] = dict()
         self._social_relations: list[SocialRelation] = list()
 
         with open("resources/female_names.yml", "r") as file:
@@ -95,14 +102,18 @@ class QueryBuilder:
 
     def _get_new_place_id(self) -> str:
         place_id = f"{self._place_id_prefix}-{self._get_new_uuid()}"
-        self._place_ids.append(place_id)
         return place_id
 
-    def _get_random_place_id(self) -> str:
-        return self._random.choice(self._place_ids)
+    def _get_random_place(self, place_type: PlaceType = None) -> Place:
+        while True:
+            place: Place = self._random.choice(list(self._places.values()))
 
-    def _add_new_place_id(self, place_id) -> None:
-        self._place_ids.append(place_id)
+            if place_type is None:
+                return place
+            elif place.type is place_type:
+                return place
+            else:
+                continue
 
     def _get_new_media_id(self) -> str:
         media_id = f"{self._media_id_prefix}-{self._get_new_uuid()}"
@@ -197,8 +208,8 @@ class QueryBuilder:
     def person(
             self,
             bio: str,
-            location_id: str,
-            birth_location_id: str,
+            location_id: str = None,
+            birth_location_id: str = None,
             languages: list[str] = ["English"],
             is_active: bool = True,
             is_visible: bool = True,
@@ -212,6 +223,12 @@ class QueryBuilder:
         email = self._get_new_email(username)
         profile_picture = self._get_new_media_id()
         birth_date = self._get_random_timestamp(TimestampFormat.DATE, start=self._birth_range[0], end=self._birth_range[1])
+
+        if location_id is None:
+            location_id = self._get_random_place(PlaceType.CITY).id
+
+        if birth_location_id is None:
+            birth_location_id = self._get_random_place(PlaceType.CITY).id
 
         queries = "# person\n" + " ".join((
             f"""match""",
@@ -248,8 +265,8 @@ class QueryBuilder:
             organisation_type: OrganisationType,
             name: str,
             bio: str,
-            location_id: str,
             tags: list[str],
+            location_id: str = None,
             is_active: bool = True,
             is_visible: bool = True,
             can_publish: bool = True,
@@ -257,6 +274,9 @@ class QueryBuilder:
         username = "".join(name.split())
         self._add_new_organisation_username(username)
         profile_picture = self._get_new_media_id()
+
+        if location_id is None:
+            location_id = self._get_random_place(place_type=PlaceType.CITY).id
 
         queries = "# organisation\n" + " ".join((
             f"""match""",
@@ -517,9 +537,13 @@ class QueryBuilder:
     ):
         if place_id is None:
             place_id = self._get_new_place_id()
-        else:
-            self._add_new_place_id(place_id)
 
+        if parent_id is None:
+            parent = None
+        else:
+            parent = self._places[parent_id]
+
+        self._places[place_id] = Place(place_type, place_id, parent)
         queries = "# place\n"
 
         if parent_id is not None:
@@ -608,8 +632,11 @@ class QueryBuilder:
     def landmark(
             self,
             name: str,
-            parent_id: str,
+            parent_id: str = None,
     ):
+        if parent_id is None:
+            parent_id = self._get_random_place(PlaceType.CITY).id
+
         queries = self._place(
             place_type=PlaceType.LANDMARK,
             name=name,
@@ -651,7 +678,7 @@ class QueryBuilder:
             warn(message, RuntimeWarning)
 
         if location_id is None:
-            location_id = self._get_random_place_id()
+            location_id = self._get_random_place(PlaceType.CITY).id
 
         start_date = self._get_random_timestamp(TimestampFormat.DATE, start=self._relationship_range[0], end=self._relationship_range[1])
 
