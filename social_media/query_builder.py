@@ -1,11 +1,12 @@
+from dataclasses import dataclass
 from datetime import datetime
 from random import Random
-from typing import Any
+from typing import Any, Self
 from uuid import UUID
 from warnings import warn
 from yaml import safe_load
 
-from social_media.enums import (
+from enums import (
     NameType,
     Gender,
     EmailDomain,
@@ -18,6 +19,12 @@ from social_media.enums import (
     OrganisationType,
     SocialRelationType,
 )
+
+
+@dataclass
+class Page:
+    type: PageType
+    id: str
 
 
 @dataclass
@@ -53,6 +60,7 @@ class QueryBuilder:
         self._group_ids: list[str] = list()
         self._post_ids: list[str] = list()
         self._comment_ids: list[str] = list()
+        self._pages: dict[str, Page] = dict()
         self._places: dict[str, Place] = dict()
         self._social_relations: list[SocialRelation] = list()
 
@@ -244,9 +252,9 @@ class QueryBuilder:
             f"""$person has profile-picture "{profile_picture}";""",
             f"""$person has gender "{gender.value}";""",
             f"""$person has email "{email}";""",
-            f"""$person has is-active "{str(is_active).lower()}";""",
-            f"""$person has is-visible "{str(is_visible).lower()}";""",
-            f"""$person has can-publish "{str(can_publish).lower()}";""",
+            f"""$person has is-active {str(is_active).lower()};""",
+            f"""$person has is-visible {str(is_visible).lower()};""",
+            f"""$person has can-publish {str(can_publish).lower()};""",
             f"""$person has page-visibility "{page_visibility.value}";""",
             f"""$person has post-visibility "{post_visibility.value}";""",
             f"""$birth (born: $person) isa birth;""",
@@ -288,9 +296,9 @@ class QueryBuilder:
             f"""$organisation has name "{name}";""",
             f"""$organisation has bio "{bio}";""",
             f"""$organisation has profile-picture"{profile_picture}";""",
-            f"""$person has is-active "{str(is_active).lower()}";""",
-            f"""$person has is-visible "{str(is_visible).lower()}";""",
-            f"""$person has can-publish "{str(can_publish).lower()}";""",
+            f"""$organisation has is-active {str(is_active).lower()};""",
+            f"""$organisation has is-visible {str(is_visible).lower()};""",
+            f"""$organisation has can-publish {str(can_publish).lower()};""",
             f"""$location (place: $place, located: $organisation) isa location;""",
         ))
 
@@ -552,7 +560,7 @@ class QueryBuilder:
                 f"""$parent isa place;""",
                 f"""$parent has id "{parent_id}";""",
                 f"""insert""",
-                f"""({PlaceType.place_role}: $parent, {PlaceType.located_role}: $place) isa {PlaceType.location_type};""",
+                f"""$location ({place_type.place_role}: $parent, {place_type.located_role}: $place) isa {place_type.location_type};""",
             ))
         else:
             queries += "insert"
@@ -681,6 +689,7 @@ class QueryBuilder:
             location_id = self._get_random_place(PlaceType.CITY).id
 
         start_date = self._get_random_timestamp(TimestampFormat.DATE, start=self._relationship_range[0], end=self._relationship_range[1])
+        self._social_relations.append(SocialRelation(relation_type, usernames))
 
         match_clause = "# relationship\n" + " ".join((
             f"""match""",
