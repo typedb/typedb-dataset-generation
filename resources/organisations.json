@@ -1,0 +1,110 @@
+[
+  {
+    "type": "company",
+    "name": "Quantum Synergy Solutions",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "company",
+    "name": "BlueWave Analytics",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "company",
+    "name": "Apex Global Enterprises",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "company",
+    "name": "SilverLeaf Technologies",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "company",
+    "name": "Horizon Innovations Group",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "company",
+    "name": "Redwood Digital Labs",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "company",
+    "name": "StellarVision Media",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "company",
+    "name": "NorthStar Logistics Corp.",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "company",
+    "name": "Pinnacle Ventures Ltd.",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "company",
+    "name": "BrightPath Pharmaceuticals",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "charity",
+    "name": "Bright Horizons Initiative",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "charity",
+    "name": "Heartwell Relief Fund",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "charity",
+    "name": "GreenSteps Environmental Trust",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "college",
+    "name": "Sterling Hills College",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "college",
+    "name": "Northern Crest Academy",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "university",
+    "name": "Westbridge University",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "university",
+    "name": "Oakwood Institute of Technology",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "type": "university",
+    "name": "Riverford University",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  }
+]

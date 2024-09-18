@@ -1,0 +1,27 @@
+[
+  {
+    "name": "The Urban Explorers Collective",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "name": "Eco Warriors Network",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "name": "The Coffee Connoisseurs Club",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "name": "Digital Nomads Hub",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  },
+  {
+    "name": "Vintage Car Enthusiasts Society",
+    "bio": "test bio",
+    "tags": ["test tag"]
+  }
+]

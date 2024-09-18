@@ -1,3 +1,5 @@
+from json import load
+from typing import Any
 from query_builder import QueryBuilder
 from enums import OrganisationType
 
@@ -41,90 +43,36 @@ queries = [
     query_builder.city("Toronto", "plc-americas/northern-america/canada/ontario/toronto", "plc-americas/northern-america/canada/ontario"),
     query_builder.city("Quebec City", "plc-americas/northern-america/canada/quebec/quebec-city", "plc-americas/northern-america/canada/quebec"),
     query_builder.city("Montreal", "plc-americas/northern-america/canada/quebec/montreal", "plc-americas/northern-america/canada/quebec"),
-    query_builder.landmark("The Rusty Mug Café"),
-    query_builder.landmark("Evergreen Rooftop Bar"),
-    query_builder.landmark("The Velvet Curtain Theatre"),
-    query_builder.landmark("Maple & Pine Coffeehouse"),
-    query_builder.landmark("The Broken Compass Pub"),
-    query_builder.landmark("Crescent Bay Bistro"),
-    query_builder.landmark("The Wishing Well Bar"),
-    query_builder.landmark("Red Fern Park"),
-    query_builder.landmark("The Silver Spoon Diner"),
-    query_builder.landmark("Starlight Drive-In"),
-    query_builder.landmark("Old Town Arcade"),
-    query_builder.landmark("The Blue Finch Tavern"),
-    query_builder.landmark("The Golden Hive Café"),
-    query_builder.landmark("Oak & Lantern Inn"),
-    query_builder.landmark("The Crystal Harbour Lounge"),
-    query_builder.landmark("Eastwood Bowling Alley"),
-    query_builder.landmark("The Foggy Pebble Pub"),
-    query_builder.landmark("Lakeside Book Nook"),
-    query_builder.landmark("The Hidden Gem Theatre"),
-    query_builder.landmark("North Shore Surf Bar"),
-    query_builder.landmark("The Walnut Grove Café"),
-    query_builder.landmark("Blackbird Jazz Club"),
-    query_builder.landmark("The Vintage Reel Cinema"),
-    query_builder.landmark("The Fox & Whistle Tavern"),
-    query_builder.landmark("The Lavender Room Café"),
-    query_builder.landmark("Birchwood Bike Shop"),
-    query_builder.landmark("The Shady Pines Grill"),
-    query_builder.landmark("The Whistling Kettle Tearoom"),
-    query_builder.landmark("Horizon Heights Bar"),
-    query_builder.landmark("Pinecrest Playhouse"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.person("test bio"),
-    query_builder.organisation(OrganisationType.COMPANY, "Quantum Synergy Solutions", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.COMPANY, "BlueWave Analytics", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.COMPANY, "Apex Global Enterprises", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.COMPANY, "SilverLeaf Technologies", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.COMPANY, "Horizon Innovations Group", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.COMPANY, "Redwood Digital Labs", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.COMPANY, "StellarVision Media", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.COMPANY, "NorthStar Logistics Corp.", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.COMPANY, "Pinnacle Ventures Ltd.", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.COMPANY, "BrightPath Pharmaceuticals", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.CHARITY, "Bright Horizons Initiative", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.CHARITY, "Heartwell Relief Fund", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.CHARITY, "GreenSteps Environmental Trust", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.COLLEGE, "Sterling Hills College", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.COLLEGE, "Northern Crest Academy", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.UNIVERSITY, "Westbridge University", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.UNIVERSITY, "Oakwood Institute of Technology", "test bio", ["test tag"]),
-    query_builder.organisation(OrganisationType.UNIVERSITY, "Riverford University", "test bio", ["test tag"]),
-    query_builder.group("The Urban Explorers Collective", "test bio", ["test tag"]),
-    query_builder.group("Eco Warriors Network", "test bio", ["test tag"]),
-    query_builder.group("The Coffee Connoisseurs Club", "test bio", ["test tag"]),
-    query_builder.group("Digital Nomads Hub", "test bio", ["test tag"]),
-    query_builder.group("Vintage Car Enthusiasts Society", "test bio", ["test tag"]),
 ]
+
+with open("resources/landmarks.txt") as resources_file:
+    for name in resources_file:
+        queries.append(query_builder.landmark(name))
+
+with open("resources/bios.txt") as resource_file:
+    for bio in resource_file:
+        queries.append(query_builder.person(bio))
+
+with open("resources/organisations.json") as resource_file:
+    organisations: list[dict[str, Any]] = load(resource_file)
+
+    for organisation in organisations:
+        queries.append(query_builder.organisation(
+            organisation_type=OrganisationType(organisation["type"]),
+            name=organisation["name"],
+            bio=organisation["bio"],
+            tags=organisation["tags"],
+        ))
+
+with open("resources/groups.json") as resource_file:
+    groups: list[dict[str, Any]] = load(resource_file)
+
+    for group in groups:
+        queries.append(query_builder.group(
+            name=group["name"],
+            bio=group["bio"],
+            tags=group["tags"],
+        ))
 
 for _ in range(30):
     queries.append(query_builder.education())
