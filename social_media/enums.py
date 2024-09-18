@@ -21,15 +21,8 @@ class WeightedEnum(ABC, Enum, metaclass=AbstractEnumMeta):
         if choices is None:
             choices = list(member for member in cls)
 
-        bound = sum(value.weight for value in choices)
-        draw = random.uniform(0.0, bound)
-        cumulative = 0.0
-
-        for choice in choices:
-            cumulative += choice.weight
-
-            if cumulative >= draw:
-                return choice
+        weights = list(choice.weight for choice in choices)
+        return random.choices(choices, weights)[0]
 
 
 class NameType(Enum):
