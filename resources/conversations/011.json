@@ -1,0 +1,72 @@
+{
+  "username": "@34343",
+  "timestamp": "2023-12-01T16:00:00Z",
+  "body": "We just bought our first home! 🏡 It’s a fixer-upper, but we’re ready for the challenge. Can’t wait to start turning this place into our dream home!",
+  "comments": [
+    {
+      "username": "@45454",
+      "timestamp": "2023-12-01T16:15:00Z",
+      "body": "Congrats! Fixer-uppers are a lot of work, but it’s so rewarding when you start seeing the transformation. What’s the first project you’re tackling?",
+      "comments": [
+        {
+          "username": "@34343",
+          "timestamp": "2023-12-01T16:25:00Z",
+          "body": "@45454 Thanks! We’re starting with the kitchen—figured it’s the heart of the home, so we want to get that right first!",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "username": "@56565",
+      "timestamp": "2023-12-01T16:30:00Z",
+      "body": "Congratulations! That’s so exciting. Are you planning to do most of the work yourselves or hire pros for the big stuff?",
+      "comments": [
+        {
+          "username": "@34343",
+          "timestamp": "2023-12-01T16:40:00Z",
+          "body": "@56565 A mix of both! We’ll DIY the smaller things like painting and decor, but we’re bringing in pros for the plumbing and electrical work.",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "username": "@67676",
+      "timestamp": "2023-12-01T16:45:00Z",
+      "body": "That’s amazing! There’s something special about making a house truly yours. Are you planning any big changes, like knocking down walls?",
+      "comments": [
+        {
+          "username": "@34343",
+          "timestamp": "2023-12-01T16:55:00Z",
+          "body": "@67676 Yup, we’re actually knocking down a wall between the kitchen and living room to open up the space. It’s going to make such a difference!",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "username": "@78787",
+      "timestamp": "2023-12-01T17:00:00Z",
+      "body": "Congrats on the new home! Do you have any design themes in mind? Modern, rustic, or something else?",
+      "comments": [
+        {
+          "username": "@34343",
+          "timestamp": "2023-12-01T17:10:00Z",
+          "body": "@78787 We’re thinking of going for a modern rustic vibe—clean lines but with lots of warm, natural materials like wood and stone.",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "username": "@89898",
+      "timestamp": "2023-12-01T17:20:00Z",
+      "body": "So happy for you! I’m sure it’ll be a lot of work, but the satisfaction of seeing it all come together will be worth it. Any outdoor projects planned too?",
+      "comments": [
+        {
+          "username": "@34343",
+          "timestamp": "2023-12-01T17:30:00Z",
+          "body": "@89898 Thanks! Definitely—once the inside is sorted, we want to spruce up the backyard and maybe add a small garden. It’s a work in progress!",
+          "comments": []
+        }
+      ]
+    }
+  ]
+}
