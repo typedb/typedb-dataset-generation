@@ -2,7 +2,7 @@
   "username": "@56565",
   "timestamp": "2023-11-25T14:00:00Z",
   "body": "I’m planning to learn a new language next year, but I can’t decide which one!",
-  "question:": "Which language should I learn?",
+  "question": "Which language should I learn?",
   "answers": ["Spanish", "French", "Japanese", "Italian"],
   "comments": [
     {

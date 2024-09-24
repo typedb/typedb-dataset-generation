@@ -2,7 +2,7 @@
   "username": "@23232",
   "timestamp": "2023-09-30T10:30:00Z",
   "body": "I’m thinking of adopting a pet, but I can’t decide what kind!",
-  "question:": "Help me out: What kind of pet should I adopt?",
+  "question": "Help me out: What kind of pet should I adopt?",
   "answers": ["Dog", "Cat", "Bird", "Fish"],
   "comments": [
     {
