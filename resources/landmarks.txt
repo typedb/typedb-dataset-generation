@@ -1,23 +1,24 @@
-The Rusty Mug Café
-Evergreen Rooftop Bar
-The Velvet Curtain Theatre
-Maple & Pine Coffeehouse
-The Broken Compass Pub
-Crescent Bay Bistro
-The Wishing Well Bar
-Red Fern Park
-The Silver Spoon Diner
-Starlight Drive-In
-Old Town Arcade
-The Blue Finch Tavern
-The Golden Hive Café
-Oak & Lantern Inn
+Greenfield Public Library
+Paws & Whiskers Rescue Shelter
+Willowbrook Park
+Silver Screen Cinemas
+Horizon Auto Exchange
+Sunset Cove Resort
+Redwood Peaks National Park
+PedalPower Bike Shop
+Riverview Skate Plaza
+The Roasted Bean Café
+Westside Sports Complex
+Riverstone Community Hub
+Ironworks Fitness Center
 The Crystal Harbour Lounge
+North Shore Surf Bar
+The Whistling Kettle Tearoom
+Oak & Lantern Inn
 Eastwood Bowling Alley
 The Foggy Pebble Pub
 Lakeside Book Nook
 The Hidden Gem Theatre
-North Shore Surf Bar
 The Walnut Grove Café
 Blackbird Jazz Club
 The Vintage Reel Cinema
@@ -25,6 +26,5 @@ The Fox & Whistle Tavern
 The Lavender Room Café
 Birchwood Bike Shop
 The Shady Pines Grill
-The Whistling Kettle Tearoom
 Horizon Heights Bar
 Pinecrest Playhouse

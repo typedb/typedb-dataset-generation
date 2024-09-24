@@ -1,23 +1,23 @@
 [
   {
+    "name": "All-Star Sports Network",
+    "bio": "All-Star Sports Network is the ultimate community for athletes, sports fans, and fitness enthusiasts. Whether you’re into football, basketball, running, or any other sport, this is the place to share training tips, game highlights, and stay updated on the latest news. Join us to connect with others who live and breathe sports, and take your game to the next level!",
+    "tags": ["SportsCommunity", "AthleteLife", "GameDay", "FitnessTips", "SportsTraining", "SportsFans", "TeamSpirit", "ActiveLifestyle"]
+  },
+  {
+    "name": "Gourmet Foodies Circle",
+    "bio": "Gourmet Foodies Circle is a vibrant community for food lovers, home cooks, and culinary adventurers. Whether you’re passionate about trying new recipes, exploring global cuisines, or sharing restaurant recommendations, this is the place to connect with fellow foodies. Join us to swap cooking tips, review dishes, and celebrate the love of great food!",
+    "tags": ["FoodLovers", "CulinaryAdventures", "HomeCooking", "GourmetRecipes", "FoodiesUnite", "GlobalCuisines", "RestaurantReviews", "CookingTips"]
+  },
+  {
     "name": "The Urban Explorers Collective",
     "bio": "The Urban Explorers Collective is a community of adventurers passionate about exploring hidden corners of cities. From forgotten buildings to secret rooftops, we seek out the untold stories of urban landscapes. Join us to discover, document, and share the unseen sides of your city.",
     "tags": ["UrbanExploration", "CityAdventures", "HiddenGems", "UrbanExplorers", "Photography", "StreetCulture", "UrbanDiscoveries"]
   },
   {
-    "name": "Eco Warriors Network",
-    "bio": "Eco Warriors Network brings together individuals committed to environmental activism and sustainability. Our members are passionate about protecting the planet, advocating for green initiatives, and educating others on eco-friendly living. Together, we can make a difference for future generations.",
-    "tags": ["EnvironmentalActivism", "EcoFriendly", "Sustainability", "ClimateAction", "GreenInitiatives", "EcoWarriors", "SaveThePlanet"]
-  },
-  {
     "name": "The Coffee Connoisseurs Club",
     "bio": "The Coffee Connoisseurs Club is a haven for coffee lovers who appreciate the art of brewing and the perfect cup. Whether you're a barista or just passionate about discovering new beans and blends, this is the place to share tips, reviews, and experiences with fellow coffee enthusiasts.",
     "tags": ["CoffeeLovers", "CoffeeCulture", "SpecialtyCoffee", "BaristaLife", "CoffeeTasting", "BrewingTechniques", "CoffeeAddicts"]
-  },
-  {
-    "name": "Digital Nomads Hub",
-    "bio": "Digital Nomads Hub is a global community for remote workers and freelancers who love to travel while staying connected. We share tips on balancing work and adventure, finding the best co-working spaces, and thriving as digital nomads. Your journey doesn’t have to stop when your workday begins.",
-    "tags": ["DigitalNomads", "RemoteWork", "Freelancers", "WorkAndTravel", "Coworking", "DigitalLifestyle", "LocationIndependent"]
   },
   {
     "name": "Vintage Car Enthusiasts Society",
