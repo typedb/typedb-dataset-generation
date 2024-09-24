@@ -169,15 +169,11 @@ class QueryBuilder:
     def _generate_new_group_id(self) -> str:
         return f"{self._group_id_prefix}-{self._generate_new_uuid()}"
 
-    def _get_new_post_id(self) -> str:
-        post_id = f"{self._post_id_prefix}-{self._generate_new_uuid()}"
-        self._post_ids.append(post_id)
-        return post_id
+    def _generate_new_post_id(self) -> str:
+        return f"{self._post_id_prefix}-{self._generate_new_uuid()}"
 
-    def _get_new_comment_id(self) -> str:
-        comment_id = f"{self._comment_id_prefix}-{self._generate_new_uuid()}"
-        self._comment_ids.append(comment_id)
-        return comment_id
+    def _generate_new_comment_id(self) -> str:
+        return f"{self._comment_id_prefix}-{self._generate_new_uuid()}"
 
     def _generate_new_place_id(self) -> str:
         return f"{self._place_id_prefix}-{self._generate_new_uuid()}"
@@ -425,7 +421,9 @@ class QueryBuilder:
             post_visibility: PostVisibility = PostVisibility.DEFAULT,
     ) -> str:
         if post_id is None:
-            post_id = self._get_new_post_id()
+            post_id = self._generate_new_post_id()
+
+        self._post_ids.append(post_id)
 
         if creation_timestamp is None:
             creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, range=self._post_range)
@@ -661,7 +659,9 @@ class QueryBuilder:
             is_visible: bool = True,
     ) -> str:
         if comment_id is None:
-            comment_id = self._get_new_comment_id()
+            comment_id = self._generate_new_comment_id()
+
+        self._comment_ids.append(comment_id)
 
         queries = "# comment\n" + " ".join((
             f"""match""",
@@ -758,19 +758,19 @@ class QueryBuilder:
         for node in conversation.nodes:
             match node.content_type:
                 case PostType.TEXT:
-                    content_id = self._get_new_post_id()
+                    content_id = self._generate_new_post_id()
                 case PostType.SHARE:
-                    content_id = self._get_new_post_id()
+                    content_id = self._generate_new_post_id()
                 case PostType.IMAGE:
-                    content_id = self._get_new_post_id()
+                    content_id = self._generate_new_post_id()
                 case PostType.VIDEO:
-                    content_id = self._get_new_post_id()
+                    content_id = self._generate_new_post_id()
                 case PostType.LIVE:
-                    content_id = self._get_new_post_id()
+                    content_id = self._generate_new_post_id()
                 case PostType.POLL:
-                    content_id = self._get_new_post_id()
+                    content_id = self._generate_new_post_id()
                 case "comment":
-                    content_id = self._get_new_comment_id()
+                    content_id = self._generate_new_comment_id()
                 case _:
                     raise RuntimeError()
 
