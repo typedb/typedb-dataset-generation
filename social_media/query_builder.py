@@ -36,6 +36,7 @@ class Page:
 class Place:
     type: PlaceType
     id: str
+    name: str
     parent: Self = None
 
 
@@ -418,6 +419,7 @@ class QueryBuilder:
             tags: list[str],
             post_id: str = None,
             creation_timestamp: str = None,
+            location_id: str = None,
             language: str = "English",
             is_visible: bool = True,
             post_visibility: PostVisibility = PostVisibility.DEFAULT,
@@ -428,12 +430,15 @@ class QueryBuilder:
         if creation_timestamp is None:
             creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, range=self._post_range)
 
-        queries = "# post\n" + " ".join((
+        match_clause = " ".join((
             f"""match""",
             f"""$page isa page;""",
             f"""$page has id "{page_id}";""",
             f"""$profile isa profile;""",
             f"""$profile has id "{author_username}";""",
+        ))
+
+        insert_clause = " ".join((
             f"""insert""",
             f"""$post isa {post_type.value};""",
             f"""$post has post-id "{post_id}";""",
@@ -446,7 +451,13 @@ class QueryBuilder:
         ))
 
         for tag in tags:
-            queries += f""" $post has tag "{tag}";"""
+            insert_clause += f""" $post has tag "{tag}";"""
+
+        if location_id is not None:
+            match_clause += f""" $place isa place; $place has id "{location_id}";"""
+            insert_clause += f""" $location (place: $place, located: $post) isa location;"""
+
+        queries = f"# post\n{match_clause} {insert_clause}"
 
         return queries
 
@@ -458,6 +469,7 @@ class QueryBuilder:
             tags: list[str],
             post_id: str = None,
             creation_timestamp: str = None,
+            location_id: str = None,
             language: str = "English",
             is_visible: bool = True,
             post_visibility: PostVisibility = PostVisibility.DEFAULT,
@@ -470,6 +482,7 @@ class QueryBuilder:
             tags=tags,
             post_id=post_id,
             creation_timestamp=creation_timestamp,
+            location_id=location_id,
             language=language,
             is_visible=is_visible,
             post_visibility=post_visibility,
@@ -484,6 +497,7 @@ class QueryBuilder:
             tags: list[str],
             post_id: str = None,
             creation_timestamp: str = None,
+            location_id: str = None,
             language: str = "English",
             is_visible: bool = True,
             post_visibility: PostVisibility = PostVisibility.DEFAULT,
@@ -496,6 +510,7 @@ class QueryBuilder:
             tags=tags,
             post_id=post_id,
             creation_timestamp=creation_timestamp,
+            location_id=location_id,
             language=language,
             is_visible=is_visible,
             post_visibility=post_visibility,
@@ -511,6 +526,7 @@ class QueryBuilder:
             tags: list[str],
             post_id: str = None,
             creation_timestamp: str = None,
+            location_id: str = None,
             language: str = "English",
             is_visible: bool = True,
             post_visibility: PostVisibility = PostVisibility.DEFAULT,
@@ -525,6 +541,7 @@ class QueryBuilder:
             tags=tags,
             post_id=post_id,
             creation_timestamp=creation_timestamp,
+            location_id=location_id,
             language=language,
             is_visible=is_visible,
             post_visibility=post_visibility,
@@ -541,6 +558,7 @@ class QueryBuilder:
             tags: list[str],
             post_id: str = None,
             creation_timestamp: str = None,
+            location_id: str = None,
             language: str = "English",
             is_visible: bool = True,
             post_visibility: PostVisibility = PostVisibility.DEFAULT,
@@ -555,6 +573,7 @@ class QueryBuilder:
             tags=tags,
             post_id=post_id,
             creation_timestamp=creation_timestamp,
+            location_id=location_id,
             language=language,
             is_visible=is_visible,
             post_visibility=post_visibility,
@@ -571,6 +590,7 @@ class QueryBuilder:
             tags: list[str],
             post_id: str = None,
             creation_timestamp: str = None,
+            location_id: str = None,
             language: str = "English",
             is_visible: bool = True,
             post_visibility: PostVisibility = PostVisibility.DEFAULT,
@@ -585,6 +605,7 @@ class QueryBuilder:
             tags=tags,
             post_id=post_id,
             creation_timestamp=creation_timestamp,
+            location_id=location_id,
             language=language,
             is_visible=is_visible,
             post_visibility=post_visibility,
@@ -603,6 +624,7 @@ class QueryBuilder:
             answers: list[str],
             post_id: str = None,
             creation_timestamp: str = None,
+            location_id: str = None,
             language: str = "English",
             is_visible: bool = True,
             post_visibility: PostVisibility = PostVisibility.DEFAULT,
@@ -615,6 +637,7 @@ class QueryBuilder:
             tags=tags,
             post_id=post_id,
             creation_timestamp=creation_timestamp,
+            location_id=location_id,
             language=language,
             is_visible=is_visible,
             post_visibility=post_visibility,
@@ -660,7 +683,13 @@ class QueryBuilder:
 
         return queries
 
-    def conversation(self, conversation: Conversation, posting_type: str, page_name: str = None) -> list[str]:
+    def conversation(
+            self,
+            conversation: Conversation,
+            posting_type: str,
+            page_name: str = None,
+            location_name: str = None
+    ) -> list[str]:
         if posting_type not in ["person-self", "person-group"]:
             raise NotImplementedError()
 
@@ -706,6 +735,18 @@ class QueryBuilder:
             case _:
                 raise RuntimeError()
 
+        if location_name is None:
+            location_id = None
+        else:
+            places = [place for place in self._places.values() if place.name == location_name]
+
+            if len(places) == 0:
+                raise RuntimeError("No place with the specified name exists.")
+            elif len(places) == 1:
+                location_id = places[0].id
+            else:
+                raise RuntimeError("Multiple places with the specified name exist.")
+
         usertag_mapping: dict[str, str] = {
             local_usertag: f"@{commenter.id}"
             for local_usertag, commenter in zip(conversation.commenters, commenters)
@@ -745,6 +786,7 @@ class QueryBuilder:
                         page_id=page_id,
                         author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
                         creation_timestamp=node.timestamp,
+                        location_id=location_id,
                         post_text=node.globalised_body(usertag_mapping),
                         tags=list(node.globalised_tags(usertag_mapping)),
                     ))
@@ -756,6 +798,7 @@ class QueryBuilder:
                         page_id=page_id,
                         author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
                         creation_timestamp=node.timestamp,
+                        location_id=location_id,
                         post_text=node.globalised_body(usertag_mapping),
                         tags=list(node.globalised_tags(usertag_mapping)),
                     ))
@@ -765,6 +808,7 @@ class QueryBuilder:
                         page_id=page_id,
                         author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
                         creation_timestamp=node.timestamp,
+                        location_id=location_id,
                         post_text=node.globalised_body(usertag_mapping),
                         tags=list(node.globalised_tags(usertag_mapping)),
                     ))
@@ -774,6 +818,7 @@ class QueryBuilder:
                         page_id=page_id,
                         author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
                         creation_timestamp=node.timestamp,
+                        location_id=location_id,
                         post_text=node.globalised_body(usertag_mapping),
                         tags=list(node.globalised_tags(usertag_mapping)),
                     ))
@@ -783,6 +828,7 @@ class QueryBuilder:
                         page_id=page_id,
                         author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
                         creation_timestamp=node.timestamp,
+                        location_id=location_id,
                         post_text=node.globalised_body(usertag_mapping),
                         question=node.question,
                         answers=node.answers,
@@ -817,7 +863,7 @@ class QueryBuilder:
         else:
             parent = self._places[parent_id]
 
-        self._places[place_id] = Place(place_type, place_id, parent)
+        self._places[place_id] = Place(place_type, place_id, name, parent)
         queries = "# place\n"
 
         if parent_id is not None:

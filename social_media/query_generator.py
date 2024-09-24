@@ -98,10 +98,20 @@ with open("resources/conversations/index.json", "r") as index_file:
         else:
             page_name = entry["page_name"]
 
+        if entry["location_name"] == "":
+            location_name: str | None = None
+        else:
+            location_name = entry["location_name"]
+
         with open(path, "r") as resource_file:
             json_rep: dict[str, Any] = load(resource_file)
             conversation = Conversation.from_json(json_rep, post_type)
-            queries += query_builder.conversation(conversation, posting_type, page_name)
+            queries += query_builder.conversation(
+                conversation=conversation,
+                posting_type=posting_type,
+                page_name=page_name,
+                location_name=location_name,
+            )
 
 with open("resources/copyright_statement.txt", "r") as copyright_file:
     copyright_statement = copyright_file.read()
