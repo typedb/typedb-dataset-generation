@@ -1,7 +1,8 @@
 from json import load
 from typing import Any
 from query_builder import QueryBuilder
-from enums import OrganisationType
+from enums import OrganisationType, PostType
+from conversation import Conversation
 
 query_builder = QueryBuilder()
 
@@ -45,15 +46,15 @@ queries = [
     query_builder.city("Montreal", "plc-americas/northern-america/canada/quebec/montreal", "plc-americas/northern-america/canada/quebec"),
 ]
 
-with open("resources/landmarks.txt") as resources_file:
-    for name in resources_file:
-        queries.append(query_builder.landmark(name))
+with open("resources/landmarks.txt", "r") as resources_file:
+    for line in resources_file:
+        queries.append(query_builder.landmark(line.strip()))
 
-with open("resources/bios.txt") as resource_file:
+with open("resources/bios.txt", "r") as resource_file:
     for bio in resource_file:
-        queries.append(query_builder.person(bio))
+        queries.append(query_builder.person(bio.strip()))
 
-with open("resources/organisations.json") as resource_file:
+with open("resources/organisations.json", "r") as resource_file:
     organisations: list[dict[str, Any]] = load(resource_file)
 
     for organisation in organisations:
@@ -64,7 +65,7 @@ with open("resources/organisations.json") as resource_file:
             tags=organisation["tags"],
         ))
 
-with open("resources/groups.json") as resource_file:
+with open("resources/groups.json", "r") as resource_file:
     groups: list[dict[str, Any]] = load(resource_file)
 
     for group in groups:
@@ -83,6 +84,24 @@ for _ in range(50):
 
 for _ in range(200):
     queries.append(query_builder.social_relation())
+
+with open("resources/conversations/index.json", "r") as index_file:
+    conversation_index: list[dict[str, Any]] = load(index_file)
+
+    for entry in conversation_index:
+        path = f"resources/conversations/{entry["ref"]}.json"
+        post_type = PostType[entry["type"].upper()]
+        posting_type = entry["posting_type"]
+
+        if entry["page_name"] == "":
+            page_name: str | None = None
+        else:
+            page_name = entry["page_name"]
+
+        with open(path, "r") as resource_file:
+            json_rep: dict[str, Any] = load(resource_file)
+            conversation = Conversation.from_json(json_rep, post_type)
+            queries += query_builder.conversation(conversation, posting_type, page_name)
 
 with open("resources/copyright_statement.txt", "r") as copyright_file:
     copyright_statement = copyright_file.read()

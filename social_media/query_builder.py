@@ -6,7 +6,6 @@ from typing import Any, Self
 from uuid import UUID
 from warnings import warn
 from yaml import safe_load
-
 from enums import (
     NameType,
     Gender,
@@ -23,12 +22,14 @@ from enums import (
     InstituteType,
     GroupMemberRank,
 )
+from conversation import Conversation
 
 
 @dataclass
 class Page:
     type: PageType
     id: str
+    name: str
 
 
 @dataclass
@@ -145,6 +146,9 @@ class QueryBuilder:
             if group is membership.group:
                 yield membership.member
 
+    def _social_relation_count(self, person: Page) -> int:
+        return len([relation for relation in self._social_relations if person in relation.persons])
+
     def _relationship_count(self, person: Page) -> int:
         return len([relation for relation in self._social_relations if relation.type.is_relationship and person in relation.persons])
 
@@ -181,7 +185,7 @@ class QueryBuilder:
         if place_type is None:
             choices = list(self._places.values())
         else:
-            choices = list(place for place in self._places.values() if place.type is place_type)
+            choices = [place for place in self._places.values() if place.type is place_type]
 
         if len(choices) == 0:
             raise RuntimeError("No places of the desired type exist.")
@@ -192,7 +196,7 @@ class QueryBuilder:
         if organisation_type is None:
             choices = list(self._organisations)
         else:
-            choices = list(organisation for organisation in self._organisations if organisation.type is organisation_type.page_type)
+            choices = [organisation for organisation in self._organisations if organisation.type is organisation_type.page_type]
 
         if len(choices) == 0:
             raise RuntimeError("No organisations of the desired type exist.")
@@ -203,7 +207,7 @@ class QueryBuilder:
         if institute_type is None:
             choices = list(self._institutes)
         else:
-            choices = list(institute for institute in self._institutes if institute.type is institute_type.page_type)
+            choices = [institute for institute in self._institutes if institute.type is institute_type.page_type]
 
         if len(choices) == 0:
             raise RuntimeError("No institutes of the desired type exist.")
@@ -296,7 +300,7 @@ class QueryBuilder:
         email = self._generate_new_email(username)
         profile_picture = self._generate_new_media_id()
         birth_date = self._get_random_timestamp(TimestampFormat.DATE, self._birth_range)
-        self._pages[username] = Page(PageType.PERSON, username)
+        self._pages[username] = Page(PageType.PERSON, username, name)
 
         if location_id is None:
             location_id = self._get_random_place(PlaceType.CITY).id
@@ -346,7 +350,7 @@ class QueryBuilder:
             can_publish: bool = True,
     ) -> str:
         username = "".join(name.split())
-        self._pages[username] = Page(organisation_type.page_type, username)
+        self._pages[username] = Page(organisation_type.page_type, username, name)
         profile_picture = self._generate_new_media_id()
 
         if location_id is None:
@@ -385,7 +389,7 @@ class QueryBuilder:
     ) -> str:
         group_id = self._generate_new_group_id()
         profile_picture = self._generate_new_media_id()
-        self._pages[group_id] = Page(PageType.GROUP, group_id)
+        self._pages[group_id] = Page(PageType.GROUP, group_id, name)
 
         queries = "# group\n" + " ".join((
             f"""insert""",
@@ -408,38 +412,51 @@ class QueryBuilder:
     def _post(
             self,
             post_type: PostType,
+            page_id: str,
+            author_username: str,
             post_text: str,
             tags: list[str],
+            post_id: str = None,
             creation_timestamp: str = None,
             language: str = "English",
             is_visible: bool = True,
             post_visibility: PostVisibility = PostVisibility.DEFAULT,
     ) -> str:
-        post_id = self._get_new_post_id()
+        if post_id is None:
+            post_id = self._get_new_post_id()
 
         if creation_timestamp is None:
             creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, range=self._post_range)
 
         queries = "# post\n" + " ".join((
+            f"""match""",
+            f"""$page isa page;""",
+            f"""$page has id "{page_id}";""",
+            f"""$profile isa profile;""",
+            f"""$profile has id "{author_username}";""",
             f"""insert""",
             f"""$post isa {post_type.value};""",
             f"""$post has post-id "{post_id}";""",
             f"""$post has post-text "{post_text}";""",
             f"""$post has creation-timestamp {creation_timestamp};""",
             f"""$post has language "{language}";""",
-            f"""$post has is-visible "{str(is_visible).lower()}";""",
-            f"""$post has post-visibility "{post_visibility}";""",
+            f"""$post has is-visible {str(is_visible).lower()};""",
+            f"""$post has post-visibility "{post_visibility.value}";""",
+            f"""$posting (page: $page, post: $post, author: $profile) isa posting;""",
         ))
 
         for tag in tags:
-            queries += f""" $post has tag {tag};"""
+            queries += f""" $post has tag "{tag}";"""
 
         return queries
 
     def text_post(
             self,
+            page_id: str,
+            author_username: str,
             post_text: str,
             tags: list[str],
+            post_id: str = None,
             creation_timestamp: str = None,
             language: str = "English",
             is_visible: bool = True,
@@ -447,40 +464,52 @@ class QueryBuilder:
     ) -> str:
         return self._post(
             PostType.TEXT,
-            post_text,
-            tags,
-            creation_timestamp,
-            language,
-            is_visible,
-            post_visibility,
+            page_id=page_id,
+            author_username=author_username,
+            post_text=post_text,
+            tags=tags,
+            post_id=post_id,
+            creation_timestamp=creation_timestamp,
+            language=language,
+            is_visible=is_visible,
+            post_visibility=post_visibility,
         )
 
     def share_post(
             self,
+            page_id: str,
+            author_username: str,
             post_text: str,
             original_post_id: str,
             tags: list[str],
+            post_id: str = None,
             creation_timestamp: str = None,
             language: str = "English",
             is_visible: bool = True,
             post_visibility: PostVisibility = PostVisibility.DEFAULT,
     ) -> str:
         queries = self._post(
-            PostType.SHARE,
-            post_text,
-            tags,
-            creation_timestamp,
-            language,
-            is_visible,
-            post_visibility,
+            post_type=PostType.SHARE,
+            page_id=page_id,
+            author_username=author_username,
+            post_text=post_text,
+            tags=tags,
+            post_id=post_id,
+            creation_timestamp=creation_timestamp,
+            language=language,
+            is_visible=is_visible,
+            post_visibility=post_visibility,
         )
 
         raise NotImplementedError()
 
     def image_post(
             self,
+            page_id: str,
+            author_username: str,
             post_text: str,
             tags: list[str],
+            post_id: str = None,
             creation_timestamp: str = None,
             language: str = "English",
             is_visible: bool = True,
@@ -490,12 +519,15 @@ class QueryBuilder:
 
         queries = self._post(
             PostType.IMAGE,
-            post_text,
-            tags,
-            creation_timestamp,
-            language,
-            is_visible,
-            post_visibility,
+            page_id=page_id,
+            author_username=author_username,
+            post_text=post_text,
+            tags=tags,
+            post_id=post_id,
+            creation_timestamp=creation_timestamp,
+            language=language,
+            is_visible=is_visible,
+            post_visibility=post_visibility,
         )
 
         queries += f""" $post has post-image "{post_image}";"""
@@ -503,8 +535,11 @@ class QueryBuilder:
 
     def video_post(
             self,
+            page_id: str,
+            author_username: str,
             post_text: str,
             tags: list[str],
+            post_id: str = None,
             creation_timestamp: str = None,
             language: str = "English",
             is_visible: bool = True,
@@ -514,12 +549,15 @@ class QueryBuilder:
 
         queries = self._post(
             PostType.VIDEO,
-            post_text,
-            tags,
-            creation_timestamp,
-            language,
-            is_visible,
-            post_visibility,
+            page_id=page_id,
+            author_username=author_username,
+            post_text=post_text,
+            tags=tags,
+            post_id=post_id,
+            creation_timestamp=creation_timestamp,
+            language=language,
+            is_visible=is_visible,
+            post_visibility=post_visibility,
         )
 
         queries += f""" $post has post-video "{post_video}";"""
@@ -527,8 +565,11 @@ class QueryBuilder:
 
     def live_video_post(
             self,
+            page_id: str,
+            author_username: str,
             post_text: str,
             tags: list[str],
+            post_id: str = None,
             creation_timestamp: str = None,
             language: str = "English",
             is_visible: bool = True,
@@ -538,12 +579,15 @@ class QueryBuilder:
 
         queries = self._post(
             PostType.LIVE,
-            post_text,
-            tags,
-            creation_timestamp,
-            language,
-            is_visible,
-            post_visibility,
+            page_id=page_id,
+            author_username=author_username,
+            post_text=post_text,
+            tags=tags,
+            post_id=post_id,
+            creation_timestamp=creation_timestamp,
+            language=language,
+            is_visible=is_visible,
+            post_visibility=post_visibility,
         )
 
         queries += f""" $post has post-video "{post_video}";"""
@@ -551,10 +595,13 @@ class QueryBuilder:
 
     def poll_post(
             self,
+            page_id: str,
+            author_username: str,
             post_text: str,
             tags: list[str],
             question: str,
             answers: list[str],
+            post_id: str = None,
             creation_timestamp: str = None,
             language: str = "English",
             is_visible: bool = True,
@@ -562,12 +609,15 @@ class QueryBuilder:
     ) -> str:
         queries = self._post(
             PostType.POLL,
-            post_text,
-            tags,
-            creation_timestamp,
-            language,
-            is_visible,
-            post_visibility,
+            page_id=page_id,
+            author_username=author_username,
+            post_text=post_text,
+            tags=tags,
+            post_id=post_id,
+            creation_timestamp=creation_timestamp,
+            language=language,
+            is_visible=is_visible,
+            post_visibility=post_visibility,
         )
 
         queries += f""" $post has question "{question}";"""
@@ -580,26 +630,177 @@ class QueryBuilder:
     def comment(
             self,
             parent_id: str,
+            author_username: str,
             comment_text: str,
             tags: list[str],
+            comment_id: str = None,
             creation_timestamp: str = None,
             is_visible: bool = True,
     ) -> str:
-        comment_id = self._get_new_comment_id()
+        if comment_id is None:
+            comment_id = self._get_new_comment_id()
 
         queries = "# comment\n" + " ".join((
+            f"""match""",
+            f"""$parent isa content;""",
+            f"""$parent has id "{parent_id}";""",
+            f"""$profile isa profile;""",
+            f"""$profile has id "{author_username}";""",
             f"""insert""",
             f"""$comment isa comment;""",
             f"""$comment has comment-id "{comment_id}";""",
             f"""$comment has comment-text "{comment_text}";""",
             f"""$comment has creation-timestamp {creation_timestamp};""",
             f"""$comment has is-visible {str(is_visible).lower()};""",
+            f"""$commenting (parent: $parent, comment: $comment, author: $profile) isa commenting;""",
         ))
 
         for tag in tags:
-            queries += f""" $comment has tag {tag};"""
+            queries += f""" $comment has tag "{tag}";"""
 
-        raise NotImplementedError()
+        return queries
+
+    def conversation(self, conversation: Conversation, posting_type: str, page_name: str = None) -> list[str]:
+        if posting_type not in ["person-self", "person-group"]:
+            raise NotImplementedError()
+
+        if len(conversation.usertags - conversation.participants) != 0:
+            raise RuntimeError("Conversation has non-participants tagged.")
+
+        commenter_count = len(conversation.commenters)
+        participant_count = len(conversation.participants)
+
+        match posting_type:
+            case "person-self":
+                choices = [person for person in self._persons if self._social_relation_count(person) >= commenter_count]
+
+                if len(choices) == 0:
+                    raise RuntimeError("No users have sufficient social relations to build conversation.")
+
+                page_id = self._random.choice(choices).id
+                post_author = self._pages[page_id]
+                choices = [person for person in self._persons if self._get_social_relation((post_author, person)) is not None]
+                commenters = self._random.sample(choices, commenter_count)
+            case "person-group":
+                if page_name is None:
+                    choices = [group for group in self._groups if len([self._get_members(group)]) >= participant_count]
+
+                    if len(choices) == 0:
+                        raise RuntimeError("No groups has sufficient members to build conversation.")
+
+                    page_id = self._random.choice(choices).id
+                else:
+                    pages = [page for page in self._pages.values() if page.name == page_name]
+
+                    if len(pages) == 0:
+                        raise RuntimeError("No page with the specified name exists.")
+                    elif len(pages) == 1:
+                        page_id = pages[0].id
+                    else:
+                        raise RuntimeError("Multiple pages with the specified name exist.")
+
+                choices = [person for person in self._persons if person in self._get_members(self._pages[page_id])]
+                participants = self._random.sample(choices, participant_count)
+                post_author = participants.pop()
+                commenters = participants
+            case _:
+                raise RuntimeError()
+
+        usertag_mapping: dict[str, str] = {
+            local_usertag: f"@{commenter.id}"
+            for local_usertag, commenter in zip(conversation.commenters, commenters)
+        }
+
+        usertag_mapping[conversation.root_author] = f"@{post_author.id}"
+        content_id_mapping: dict[str, str] = dict()
+
+        for node in conversation.nodes:
+            match node.content_type:
+                case PostType.TEXT:
+                    content_id = self._get_new_post_id()
+                case PostType.SHARE:
+                    content_id = self._get_new_post_id()
+                case PostType.IMAGE:
+                    content_id = self._get_new_post_id()
+                case PostType.VIDEO:
+                    content_id = self._get_new_post_id()
+                case PostType.LIVE:
+                    content_id = self._get_new_post_id()
+                case PostType.POLL:
+                    content_id = self._get_new_post_id()
+                case "comment":
+                    content_id = self._get_new_comment_id()
+                case _:
+                    raise RuntimeError()
+
+            content_id_mapping[node.local_id] = content_id
+
+        queries: list[str] = list()
+
+        for node in conversation.nodes:
+            match node.content_type:
+                case PostType.TEXT:
+                    queries.append(self.text_post(
+                        post_id=content_id_mapping[node.local_id],
+                        page_id=page_id,
+                        author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
+                        creation_timestamp=node.timestamp,
+                        post_text=node.globalised_body(usertag_mapping),
+                        tags=list(node.globalised_tags(usertag_mapping)),
+                    ))
+                case PostType.SHARE:
+                    raise NotImplementedError()
+                case PostType.IMAGE:
+                    queries.append(self.image_post(
+                        post_id=content_id_mapping[node.local_id],
+                        page_id=page_id,
+                        author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
+                        creation_timestamp=node.timestamp,
+                        post_text=node.globalised_body(usertag_mapping),
+                        tags=list(node.globalised_tags(usertag_mapping)),
+                    ))
+                case PostType.VIDEO:
+                    queries.append(self.video_post(
+                        post_id=content_id_mapping[node.local_id],
+                        page_id=page_id,
+                        author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
+                        creation_timestamp=node.timestamp,
+                        post_text=node.globalised_body(usertag_mapping),
+                        tags=list(node.globalised_tags(usertag_mapping)),
+                    ))
+                case PostType.LIVE:
+                    queries.append(self.live_video_post(
+                        post_id=content_id_mapping[node.local_id],
+                        page_id=page_id,
+                        author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
+                        creation_timestamp=node.timestamp,
+                        post_text=node.globalised_body(usertag_mapping),
+                        tags=list(node.globalised_tags(usertag_mapping)),
+                    ))
+                case PostType.POLL:
+                    queries.append(self.poll_post(
+                        post_id=content_id_mapping[node.local_id],
+                        page_id=page_id,
+                        author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
+                        creation_timestamp=node.timestamp,
+                        post_text=node.globalised_body(usertag_mapping),
+                        question=node.question,
+                        answers=node.answers,
+                        tags=list(node.globalised_tags(usertag_mapping)),
+                    ))
+                case "comment":
+                    queries.append(self.comment(
+                        comment_id=content_id_mapping[node.local_id],
+                        parent_id=content_id_mapping[node.parent_local_id],
+                        author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
+                        creation_timestamp=node.timestamp,
+                        comment_text=node.globalised_body(usertag_mapping),
+                        tags=list(node.globalised_tags(usertag_mapping)),
+                    ))
+                case _:
+                    raise RuntimeError()
+
+        return queries
 
     def _place(
             self,
