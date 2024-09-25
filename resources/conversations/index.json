@@ -48,5 +48,8 @@
   { "ref": "047", "type": "live", "posting_type": "person-group", "page_name": "The Urban Explorers Collective", "topic": "at craft fair", "location_name": "Riverstone Community Hub" },
   { "ref": "048", "type": "live", "posting_type": "person-group", "page_name": "Gourmet Foodies Circle", "topic": "making pasta", "location_name": "" },
   { "ref": "049", "type": "live", "posting_type": "person-self", "page_name": "", "topic": "painting", "location_name": "" },
-  { "ref": "050", "type": "live", "posting_type": "person-group", "page_name": "All-Star Sports Network", "topic": "at gym", "location_name": "Ironworks Fitness Center" }
+  { "ref": "050", "type": "live", "posting_type": "person-group", "page_name": "All-Star Sports Network", "topic": "at gym", "location_name": "Ironworks Fitness Center" },
+  { "ref": "051", "type": "text", "posting_type": "person-group", "page_name": "IndexOne Initiative", "topic": "new code project", "location_name": "" },
+  { "ref": "052", "type": "text", "posting_type": "person-group", "page_name": "IndexOne Initiative", "topic": "indexing in excel", "location_name": "" },
+  { "ref": "053", "type": "text", "posting_type": "person-group", "page_name": "IndexOne Initiative", "topic": "refactoring old code", "location_name": "" }
 ]

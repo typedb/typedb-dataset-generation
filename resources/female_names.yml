@@ -1,4 +1,5 @@
-# Name lists taken from: https://github.com/treyhunner/names/
+# Original version taken from: https://github.com/treyhunner/names/
+# Some values have been modified.
 # Licensed under the MIT License.
 
 - value: "Mary"
@@ -2277,7 +2278,7 @@
   rank: 569
   percentage: 0.022
   percentile: 76.091
-- value: "Frankie"
+- value: "Latisha"
   rank: 570
   percentage: 0.022
   percentile: 76.113
@@ -2857,7 +2858,7 @@
   rank: 714
   percentage: 0.015
   percentile: 78.713
-- value: "Latisha"
+- value: "Frankie"
   rank: 715
   percentage: 0.015
   percentile: 78.728
