@@ -135,6 +135,17 @@ queries.append(query_builder.response_viewings())
 for _ in range(500):
     queries.append(query_builder.random_viewing())
 
+queries.append(" ".join((
+    f"""match""",
+    f"""$profile isa profile;""",
+    f"""$profile has id "SarahGiven225";""",
+    f"""$group isa group;""",
+    f"""$group has id "grp-3acaaf82374a4cc9a0397e67926146de";""",
+    f"""$membership (group: $group, member: $profile) isa group-membership;""",
+    f"""insert""",
+    f"""$membership has badge "top voice";""",
+)))
+
 with open("resources/copyright_statement.txt", "r") as copyright_file:
     copyright_statement = copyright_file.read()
 
