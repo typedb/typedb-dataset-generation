@@ -21,6 +21,7 @@ from enums import (
     PageType,
     InstituteType,
     GroupMemberRank,
+    Emoji,
 )
 from conversation import Conversation
 
@@ -65,6 +66,60 @@ class GroupMembership:
     rank: GroupMemberRank
 
 
+@dataclass
+class Post:
+    type: PostType
+    id: str
+    author_id: str
+    timestamp: str
+
+
+@dataclass
+class Comment:
+    id: str
+    author_id: str
+    timestamp: str
+
+
+@dataclass
+class Poll:
+    id: str
+    question: str
+    answers: list[str]
+
+
+@dataclass
+class Reaction:
+    content_id: str
+    author_id: str
+
+
+@dataclass
+class Response:
+    poll_id: str
+    author_id: str
+
+
+@dataclass
+class Following:
+    page: Page
+    follower: Page
+
+
+@dataclass
+class Viewing:
+    post_id: str
+    profile_id: str
+
+
+@dataclass
+class MappedConversation:
+    conversation: Conversation
+    usertag_mapping: dict[str, str]
+    content_id_mapping: dict[str, str]
+    page_id: str
+
+
 class QueryBuilder:
     _username_suffix_digits = 3
     _group_id_prefix = "grp"
@@ -89,8 +144,14 @@ class QueryBuilder:
         self._educations: list[Education] = list()
         self._employments: list[Employment] = list()
         self._group_memberships: list[GroupMembership] = list()
-        self._post_ids: list[str] = list()
-        self._comment_ids: list[str] = list()
+        self._posts: dict[str, Post] = dict()
+        self._comments: dict[str, Comment] = dict()
+        self._polls: dict[str, Poll] = dict()
+        self._reactions: list[Reaction] = list()
+        self._responses: list[Response] = list()
+        self._followings: list[Following] = list()
+        self._conversations: list[MappedConversation] = list()
+        self._viewings: list[Viewing] = list()
 
         with open("resources/female_names.yml", "r") as file:
             self._female_names: list[dict[str, Any]] = safe_load(file)
@@ -162,6 +223,16 @@ class QueryBuilder:
                 return True
 
         return False
+
+    def _get_followers(self, page: Page) -> Iterator[Page]:
+        for following in self._followings:
+            if page is following.page:
+                yield following.follower
+
+    def _get_viewer_ids(self, post: Post) -> Iterator[str]:
+        for viewing in self._viewings:
+            if post.id == viewing.post_id:
+                yield viewing.profile_id
 
     def _generate_new_uuid(self) -> str:
         return UUID(version=4, int=self._random.getrandbits(128)).hex
@@ -423,10 +494,10 @@ class QueryBuilder:
         if post_id is None:
             post_id = self._generate_new_post_id()
 
-        self._post_ids.append(post_id)
-
         if creation_timestamp is None:
             creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, range=self._post_range)
+
+        self._posts[post_id] = Post(post_type, post_id, author_username, creation_timestamp)
 
         match_clause = " ".join((
             f"""match""",
@@ -500,6 +571,9 @@ class QueryBuilder:
             is_visible: bool = True,
             post_visibility: PostVisibility = PostVisibility.DEFAULT,
     ) -> str:
+        if post_id is None:
+            post_id = self._generate_new_post_id()
+
         queries = self._post(
             post_type=PostType.SHARE,
             page_id=page_id,
@@ -514,7 +588,19 @@ class QueryBuilder:
             post_visibility=post_visibility,
         )
 
-        raise NotImplementedError()
+        queries += "\n" + " ".join((
+            f"""match""",
+            f"""$original isa post;""",
+            f"""$original has id "{original_post_id}";""",
+            f"""$share isa share-post;""",
+            f"""$share has id "{post_id}";""",
+            f"""$profile isa profile;""",
+            f"""$profile has id "{author_username}";""",
+            f"""insert""",
+            f"""$sharing (original-post: $original, share-post: $share, author: $profile) isa sharing;""",
+        ))
+
+        return queries
 
     def image_post(
             self,
@@ -646,6 +732,7 @@ class QueryBuilder:
         for answer in answers:
             queries += f""" $post has answer "{answer}";"""
 
+        self._polls[post_id] = Poll(post_id, question, answers)
         return queries
 
     def comment(
@@ -661,7 +748,10 @@ class QueryBuilder:
         if comment_id is None:
             comment_id = self._generate_new_comment_id()
 
-        self._comment_ids.append(comment_id)
+        if creation_timestamp is None:
+            creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, range=self._post_range)
+
+        self._comments[comment_id] = Comment(comment_id, author_username, creation_timestamp)
 
         queries = "# comment\n" + " ".join((
             f"""match""",
@@ -779,6 +869,8 @@ class QueryBuilder:
         queries: list[str] = list()
 
         for node in conversation.nodes:
+            self._conversations.append(MappedConversation(conversation, usertag_mapping, content_id_mapping, page_id))
+
             match node.content_type:
                 case PostType.TEXT:
                     queries.append(self.text_post(
@@ -1015,22 +1107,22 @@ class QueryBuilder:
 
         match_clause = " ".join((
             f"""match""",
-            f"""$partner-0 isa person;""",
-            f"""$partner-0 has id "{persons[0].id}";""",
-            f"""$partner-1 isa person;""",
-            f"""$partner-1 has id "{persons[1].id}";""",
+            f"""$person-0 isa person;""",
+            f"""$person-0 has id "{persons[0].id}";""",
+            f"""$person-1 isa person;""",
+            f"""$person-1 has id "{persons[1].id}";""",
         ))
 
         insert_clause = " ".join((
             f"""insert""",
-            f"""$social-relation ({relation_type.role_first}: $partner-0, {relation_type.role_second}: $partner-1) isa {relation_type.value};""",
+            f"""$social-relation ({relation_type.role_first}: $person-0, {relation_type.role_second}: $person-1) isa {relation_type.value};""",
         ))
 
         if relation_type.is_relationship:
             insert_clause += " " + " ".join((
                 f"""$social-relation has {relation_type.relationship_date_type} {start_date};""",
-                f"""$partner-0 has relationship-status "{relation_type.relationship_status.value}";"""
-                f"""$partner-1 has relationship-status "{relation_type.relationship_status.value}";"""
+                f"""$person-0 has relationship-status "{relation_type.relationship_status.value}";"""
+                f"""$person-1 has relationship-status "{relation_type.relationship_status.value}";"""
             ))
 
         if relation_type.has_location:
@@ -1197,19 +1289,208 @@ class QueryBuilder:
 
         return queries
 
-    def unset_relationship_statuses(self) -> str:
-        queries = ""
+    def relationship_statuses(self) -> str:
+        queries: list[str] = list()
 
         for person in self._persons:
             if self._relationship_count(person) == 0:
                 relationship_status = RelationshipStatus.choose(self._random)
 
-                queries += "# relationship status\n" + " ".join((
+                queries.append("# relationship status\n" + " ".join((
                     f"""match""",
                     f"""$person isa person;""",
                     f"""$person has id "{person.id}";""",
                     f"""insert""",
                     f"""$person has relationship-status "{relationship_status.value}";""",
-                ))
+                )))
 
+        return "\n".join(queries)
+
+    def reaction(self) -> str:
+        profile_id = self._random.choice([profile.id for profile in self._profiles])
+        content: Post | Comment = self._random.choice(list(self._posts.values()) + list(self._comments.values()))
+        emoji = Emoji.choose(self._random)
+        creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, range=(content.timestamp, self._post_range[1]))
+        self._reactions.append(Reaction(content.id, profile_id))
+
+        queries = "# reaction\n" + " ".join((
+            f"""match""",
+            f"""$content isa content;""",
+            f"""$content has id "{content.id}";""",
+            f"""$profile isa profile;""",
+            f"""$profile has id "{profile_id}";""",
+            f"""insert""",
+            f"""$reaction (parent: $content, author: $profile) isa reaction;""",
+            f"""$reaction has emoji "{emoji.value}";""",
+            f"""$reaction has creation-timestamp {creation_timestamp};""",
+        ))
+
+        return queries
+
+    def response(self) -> str:
+        profile_id = self._random.choice([profile.id for profile in self._profiles])
+        poll = self._random.choice(list(self._polls.values()))
+        poll_timestamp = self._posts[poll.id].timestamp
+        answer = self._random.choice(poll.answers)
+        creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, range=(poll_timestamp, self._post_range[1]))
+        self._responses.append(Response(poll.id, profile_id))
+
+        queries = "# response\n" + " ".join((
+            f"""match""",
+            f"""$poll isa poll-post;""",
+            f"""$poll has id "{poll.id}";""",
+            f"""$profile isa profile;""",
+            f"""$profile has id "{profile_id}";""",
+            f"""insert""",
+            f"""$response (poll: $poll, author: $profile) isa response;""",
+            f"""$response has answer "{answer}";""",
+            f"""$response has creation-timestamp {creation_timestamp};""",
+        ))
+
+        return queries
+
+    def _following(self, page_id: str, profile_id: str) -> str:
+        queries = "# following\n" + " ".join((
+            f"""match""",
+            f"""$page isa page;""",
+            f"""$page has id "{page_id}";""",
+            f"""$profile isa profile;""",
+            f"""$profile has id "{profile_id}";""",
+            f"""insert""",
+            f"""$following (page: $page, follower: $profile) isa following;""",
+        ))
+
+        return queries
+
+    def relation_followings(self) -> str:
+        queries: list[str] = list()
+
+        for relation in self._social_relations:
+            for page, profile in [relation.persons, relation.persons[::-1]]:
+                self._followings.append(Following(page, profile))
+                queries.append(self._following(page.id, profile.id))
+
+        return "\n".join(queries)
+
+    def member_followings(self) -> str:
+        queries: list[str] = list()
+
+        for membership in self._group_memberships:
+            self._followings.append(Following(membership.group, membership.member))
+            queries.append(self._following(membership.group.id, membership.member.id))
+
+        return "\n".join(queries)
+
+    def random_following(self) -> str:
+        page = self._random.choice([page for page in self._pages.values()])
+
+        choices = [
+            profile for profile in self._profiles
+            if profile is not page and profile not in self._get_followers(page)
+        ]
+
+        if len(choices) == 0:
+            raise RuntimeError("Page is saturated with followers.")
+
+        profile = self._random.choice(choices)
+
+        self._followings.append(Following(page, profile))
+        queries = self._following(page.id, profile.id)
+        return queries
+
+    def _subscription(self, content_id: str, profile_id: str) -> str:
+        queries = "# subscription\n" + " ".join((
+            f"""match""",
+            f"""$content isa content;""",
+            f"""$content has id "{content_id}";""",
+            f"""$profile isa profile;""",
+            f"""$profile has id "{profile_id}";""",
+            f"""insert""",
+            f"""$subscription (content: $content, subscriber: $profile) isa subscription;""",
+        ))
+
+        return queries
+
+    def content_subscriptions(self) -> str:
+        queries: list[str] = list()
+
+        for post in self._posts.values():
+            queries.append(self._subscription(post.id, post.author_id))
+
+        for comment in self._comments.values():
+            queries.append(self._subscription(comment.id, comment.author_id))
+
+        return "\n".join(queries)
+
+    def _viewing(self, content_id: str, profile_id: str) -> str:
+        queries = "# viewing\n" + " ".join((
+            f"""match""",
+            f"""$content isa content;""",
+            f"""$content has id "{content_id}";""",
+            f"""$profile isa profile;""",
+            f"""$profile has id "{profile_id}";""",
+            f"""insert""",
+            f"""$viewing (viewed: $content, viewer: $profile) isa viewing;""",
+        ))
+
+        return queries
+
+    def participant_viewings(self) -> str:
+        queries: list[str] = list()
+
+        for conversation in self._conversations:
+            post_id = conversation.content_id_mapping[conversation.conversation.root.local_id]
+
+            for participant in conversation.conversation.participants:
+                profile_id = conversation.usertag_mapping[participant]
+                viewing = Viewing(post_id, profile_id)
+
+                if viewing not in self._viewings:
+                    self._viewings.append(viewing)
+                    queries.append(self._viewing(post_id, profile_id))
+
+        return "\n".join(queries)
+
+    def reaction_viewings(self) -> str:
+        queries: list[str] = list()
+
+        for reaction in self._reactions:
+            for conversation in self._conversations:
+                if reaction.content_id in conversation.content_id_mapping.values():
+                    post_id = conversation.content_id_mapping[conversation.conversation.root.local_id]
+                    viewing = Viewing(post_id, reaction.author_id)
+
+                    if viewing not in self._viewings:
+                        self._viewings.append(viewing)
+                        queries.append(self._viewing(post_id, reaction.author_id))
+
+        return "\n".join(queries)
+
+    def response_viewings(self) -> str:
+        queries: list[str] = list()
+
+        for response in self._responses:
+            viewing = Viewing(response.poll_id, response.author_id)
+
+            if viewing not in self._viewings:
+                self._viewings.append(viewing)
+                queries.append(self._viewing(response.poll_id, response.author_id))
+
+        return "\n".join(queries)
+
+    def random_viewing(self) -> str:
+        post = self._random.choice([post for post in self._posts.values()])
+
+        choices = [
+            profile for profile in self._profiles
+            if profile.id != post.author_id and profile.id not in self._get_viewer_ids(post)
+        ]
+
+        if len(choices) == 0:
+            raise RuntimeError("Post is saturated with viewers.")
+
+        profile = self._random.choice(choices)
+
+        self._viewings.append(Viewing(post.id, profile.id))
+        queries = self._viewing(post.id, profile.id)
         return queries

@@ -113,6 +113,28 @@ with open("resources/conversations/index.json", "r") as index_file:
                 location_name=location_name,
             )
 
+queries.append(query_builder.relationship_statuses())
+
+for _ in range(1000):
+    queries.append(query_builder.reaction())
+
+for _ in range(120):
+    queries.append(query_builder.response())
+
+queries.append(query_builder.relation_followings())
+queries.append(query_builder.member_followings())
+
+for _ in range(100):
+    queries.append(query_builder.random_following())
+
+queries.append(query_builder.content_subscriptions())
+queries.append(query_builder.participant_viewings())
+queries.append(query_builder.reaction_viewings())
+queries.append(query_builder.response_viewings())
+
+for _ in range(500):
+    queries.append(query_builder.random_viewing())
+
 with open("resources/copyright_statement.txt", "r") as copyright_file:
     copyright_statement = copyright_file.read()
 
