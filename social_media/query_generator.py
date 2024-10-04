@@ -135,7 +135,7 @@ queries.append(query_builder.response_viewings())
 for _ in range(500):
     queries.append(query_builder.random_viewing())
 
-queries.append(" ".join((
+queries.append("# badge\n" + " ".join((
     f"""match""",
     f"""$profile isa profile;""",
     f"""$profile has id "SarahGiven225";""",
