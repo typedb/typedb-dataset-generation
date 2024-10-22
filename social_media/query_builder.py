@@ -1,11 +1,12 @@
 from collections.abc import Iterator
-from dataclasses import dataclass
 from itertools import product
 from random import Random
-from typing import Any, Self
+from typing import Any
 from uuid import UUID
 from warnings import warn
 from yaml import safe_load
+from conversation import Conversation
+
 from enums import (
     NameType,
     Gender,
@@ -23,101 +24,23 @@ from enums import (
     GroupMemberRank,
     Emoji,
 )
-from conversation import Conversation
 
-
-@dataclass
-class Page:
-    type: PageType
-    id: str
-    name: str
-
-
-@dataclass
-class Place:
-    type: PlaceType
-    id: str
-    name: str
-    parent: Self = None
-
-
-@dataclass
-class SocialRelation:
-    type: SocialRelationType
-    persons: tuple[Page, Page]
-
-
-@dataclass
-class Education:
-    institute: Page
-    attendee: Page
-
-
-@dataclass
-class Employment:
-    employer: Page
-    employee: Page
-
-
-@dataclass
-class GroupMembership:
-    group: Page
-    member: Page
-    rank: GroupMemberRank
-
-
-@dataclass
-class Post:
-    type: PostType
-    id: str
-    author_id: str
-    timestamp: str
-
-
-@dataclass
-class Comment:
-    id: str
-    author_id: str
-    timestamp: str
-
-
-@dataclass
-class Poll:
-    id: str
-    question: str
-    answers: list[str]
-
-
-@dataclass
-class Reaction:
-    content_id: str
-    author_id: str
-
-
-@dataclass
-class Response:
-    poll_id: str
-    author_id: str
-
-
-@dataclass
-class Following:
-    page: Page
-    follower: Page
-
-
-@dataclass
-class Viewing:
-    post_id: str
-    profile_id: str
-
-
-@dataclass
-class MappedConversation:
-    conversation: Conversation
-    usertag_mapping: dict[str, str]
-    content_id_mapping: dict[str, str]
-    page_id: str
+from data_classes import (
+    Page,
+    Place,
+    SocialRelation,
+    Education,
+    Employment,
+    GroupMembership,
+    Post,
+    Comment,
+    Poll,
+    Reaction,
+    Response,
+    Following,
+    Viewing,
+    MappedConversation
+)
 
 
 class QueryBuilder:
@@ -231,8 +154,8 @@ class QueryBuilder:
 
     def _get_viewer_ids(self, post: Post) -> Iterator[str]:
         for viewing in self._viewings:
-            if post.id == viewing.post_id:
-                yield viewing.profile_id
+            if post.id == viewing.post:
+                yield viewing.profile
 
     def _generate_new_uuid(self) -> str:
         return UUID(version=4, int=self._random.getrandbits(128)).hex
@@ -497,7 +420,7 @@ class QueryBuilder:
         if creation_timestamp is None:
             creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, range=self._post_range)
 
-        self._posts[post_id] = Post(post_type, post_id, author_username, creation_timestamp)
+        self._posts[post_id] = Post(post_type, post_id, self._pages[author_username], creation_timestamp)
 
         match_clause = " ".join((
             f"""match""",
@@ -751,7 +674,7 @@ class QueryBuilder:
         if creation_timestamp is None:
             creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, range=self._post_range)
 
-        self._comments[comment_id] = Comment(comment_id, author_username, creation_timestamp)
+        self._comments[comment_id] = Comment(comment_id, self._pages[author_username], creation_timestamp)
 
         queries = "# comment\n" + " ".join((
             f"""match""",
@@ -796,8 +719,8 @@ class QueryBuilder:
                 if len(choices) == 0:
                     raise RuntimeError("No users have sufficient social relations to build conversation.")
 
-                page_id = self._random.choice(choices).id
-                post_author = self._pages[page_id]
+                page = self._random.choice(choices)
+                post_author = page
                 choices = [person for person in self._persons if self._get_social_relation((post_author, person)) is not None]
                 commenters = self._random.sample(choices, commenter_count)
             case "person-group":
@@ -807,18 +730,18 @@ class QueryBuilder:
                     if len(choices) == 0:
                         raise RuntimeError("No groups has sufficient members to build conversation.")
 
-                    page_id = self._random.choice(choices).id
+                    page = self._random.choice(choices)
                 else:
                     pages = [page for page in self._pages.values() if page.name == page_name]
 
                     if len(pages) == 0:
                         raise RuntimeError("No page with the specified name exists.")
                     elif len(pages) == 1:
-                        page_id = pages[0].id
+                        page = pages[0]
                     else:
                         raise RuntimeError("Multiple pages with the specified name exist.")
 
-                choices = [person for person in self._persons if person in self._get_members(self._pages[page_id])]
+                choices = [person for person in self._persons if person in self._get_members(page)]
                 participants = self._random.sample(choices, participant_count)
                 post_author = participants.pop()
                 commenters = participants
@@ -847,17 +770,7 @@ class QueryBuilder:
 
         for node in conversation.nodes:
             match node.content_type:
-                case PostType.TEXT:
-                    content_id = self._generate_new_post_id()
-                case PostType.SHARE:
-                    content_id = self._generate_new_post_id()
-                case PostType.IMAGE:
-                    content_id = self._generate_new_post_id()
-                case PostType.VIDEO:
-                    content_id = self._generate_new_post_id()
-                case PostType.LIVE:
-                    content_id = self._generate_new_post_id()
-                case PostType.POLL:
+                case PostType():
                     content_id = self._generate_new_post_id()
                 case "comment":
                     content_id = self._generate_new_comment_id()
@@ -866,16 +779,15 @@ class QueryBuilder:
 
             content_id_mapping[node.local_id] = content_id
 
+        self._conversations.append(MappedConversation(conversation, usertag_mapping, content_id_mapping, page))
         queries: list[str] = list()
 
         for node in conversation.nodes:
-            self._conversations.append(MappedConversation(conversation, usertag_mapping, content_id_mapping, page_id))
-
             match node.content_type:
                 case PostType.TEXT:
                     queries.append(self.text_post(
                         post_id=content_id_mapping[node.local_id],
-                        page_id=page_id,
+                        page_id=page.id,
                         author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
                         creation_timestamp=node.timestamp,
                         location_id=location_id,
@@ -887,7 +799,7 @@ class QueryBuilder:
                 case PostType.IMAGE:
                     queries.append(self.image_post(
                         post_id=content_id_mapping[node.local_id],
-                        page_id=page_id,
+                        page_id=page.id,
                         author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
                         creation_timestamp=node.timestamp,
                         location_id=location_id,
@@ -897,7 +809,7 @@ class QueryBuilder:
                 case PostType.VIDEO:
                     queries.append(self.video_post(
                         post_id=content_id_mapping[node.local_id],
-                        page_id=page_id,
+                        page_id=page.id,
                         author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
                         creation_timestamp=node.timestamp,
                         location_id=location_id,
@@ -907,7 +819,7 @@ class QueryBuilder:
                 case PostType.LIVE:
                     queries.append(self.live_video_post(
                         post_id=content_id_mapping[node.local_id],
-                        page_id=page_id,
+                        page_id=page.id,
                         author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
                         creation_timestamp=node.timestamp,
                         location_id=location_id,
@@ -917,7 +829,7 @@ class QueryBuilder:
                 case PostType.POLL:
                     queries.append(self.poll_post(
                         post_id=content_id_mapping[node.local_id],
-                        page_id=page_id,
+                        page_id=page.id,
                         author_username=node.author_global_usertag(usertag_mapping).lstrip("@"),
                         creation_timestamp=node.timestamp,
                         location_id=location_id,
@@ -1307,18 +1219,18 @@ class QueryBuilder:
         return "\n".join(queries)
 
     def reaction(self) -> str:
-        profile_id = self._random.choice([profile.id for profile in self._profiles])
+        profile = self._random.choice([profile for profile in self._profiles])
         content: Post | Comment = self._random.choice(list(self._posts.values()) + list(self._comments.values()))
         emoji = Emoji.choose(self._random)
         creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, range=(content.timestamp, self._post_range[1]))
-        self._reactions.append(Reaction(content.id, profile_id))
+        self._reactions.append(Reaction(content, profile))
 
         queries = "# reaction\n" + " ".join((
             f"""match""",
             f"""$content isa content;""",
             f"""$content has id "{content.id}";""",
             f"""$profile isa profile;""",
-            f"""$profile has id "{profile_id}";""",
+            f"""$profile has id "{profile.id}";""",
             f"""insert""",
             f"""$reaction (parent: $content, author: $profile) isa reaction;""",
             f"""$reaction has emoji "{emoji.value}";""",
@@ -1328,19 +1240,19 @@ class QueryBuilder:
         return queries
 
     def response(self) -> str:
-        profile_id = self._random.choice([profile.id for profile in self._profiles])
+        profile = self._random.choice([profile for profile in self._profiles])
         poll = self._random.choice(list(self._polls.values()))
         poll_timestamp = self._posts[poll.id].timestamp
         answer = self._random.choice(poll.answers)
         creation_timestamp = self._get_random_timestamp(TimestampFormat.PRECISE_DATETIME, range=(poll_timestamp, self._post_range[1]))
-        self._responses.append(Response(poll.id, profile_id))
+        self._responses.append(Response(poll, profile))
 
         queries = "# response\n" + " ".join((
             f"""match""",
             f"""$poll isa poll-post;""",
             f"""$poll has id "{poll.id}";""",
             f"""$profile isa profile;""",
-            f"""$profile has id "{profile_id}";""",
+            f"""$profile has id "{profile.id}";""",
             f"""insert""",
             f"""$response (poll: $poll, author: $profile) isa response;""",
             f"""$response has answer "{answer}";""",
@@ -1415,10 +1327,10 @@ class QueryBuilder:
         queries: list[str] = list()
 
         for post in self._posts.values():
-            queries.append(self._subscription(post.id, post.author_id))
+            queries.append(self._subscription(post.id, post.author.id))
 
         for comment in self._comments.values():
-            queries.append(self._subscription(comment.id, comment.author_id))
+            queries.append(self._subscription(comment.id, comment.author.id))
 
         return "\n".join(queries)
 
@@ -1439,15 +1351,16 @@ class QueryBuilder:
         queries: list[str] = list()
 
         for conversation in self._conversations:
-            post_id = conversation.content_id_mapping[conversation.conversation.root.local_id]
+            post = self._posts[conversation.content_id_mapping[conversation.conversation.root.local_id]]
 
             for participant in conversation.conversation.participants:
-                profile_id = conversation.usertag_mapping[participant]
-                viewing = Viewing(post_id, profile_id)
+                username = conversation.usertag_mapping[participant].lstrip("@")
+                profile = self._pages[username]
+                viewing = Viewing(post, profile)
 
                 if viewing not in self._viewings:
                     self._viewings.append(viewing)
-                    queries.append(self._viewing(post_id, profile_id))
+                    queries.append(self._viewing(post.id, profile.id))
 
         return "\n".join(queries)
 
@@ -1456,13 +1369,13 @@ class QueryBuilder:
 
         for reaction in self._reactions:
             for conversation in self._conversations:
-                if reaction.content_id in conversation.content_id_mapping.values():
-                    post_id = conversation.content_id_mapping[conversation.conversation.root.local_id]
-                    viewing = Viewing(post_id, reaction.author_id)
+                if reaction.content.id in conversation.content_id_mapping.values():
+                    post = self._posts[conversation.content_id_mapping[conversation.conversation.root.local_id]]
+                    viewing = Viewing(post, reaction.author)
 
                     if viewing not in self._viewings:
                         self._viewings.append(viewing)
-                        queries.append(self._viewing(post_id, reaction.author_id))
+                        queries.append(self._viewing(post.id, reaction.author.id))
 
         return "\n".join(queries)
 
@@ -1470,11 +1383,12 @@ class QueryBuilder:
         queries: list[str] = list()
 
         for response in self._responses:
-            viewing = Viewing(response.poll_id, response.author_id)
+            poll = self._posts[response.poll.id]
+            viewing = Viewing(poll, response.author)
 
             if viewing not in self._viewings:
                 self._viewings.append(viewing)
-                queries.append(self._viewing(response.poll_id, response.author_id))
+                queries.append(self._viewing(response.poll.id, response.author.id))
 
         return "\n".join(queries)
 
@@ -1483,7 +1397,7 @@ class QueryBuilder:
 
         choices = [
             profile for profile in self._profiles
-            if profile.id != post.author_id and profile.id not in self._get_viewer_ids(post)
+            if profile.id != post.author and profile.id not in self._get_viewer_ids(post)
         ]
 
         if len(choices) == 0:
@@ -1491,6 +1405,6 @@ class QueryBuilder:
 
         profile = self._random.choice(choices)
 
-        self._viewings.append(Viewing(post.id, profile.id))
+        self._viewings.append(Viewing(post, profile))
         queries = self._viewing(post.id, profile.id)
         return queries
