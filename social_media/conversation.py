@@ -28,16 +28,16 @@ class ConversationNode:
         self.answers = answers
 
     @property
-    def usertags(self) -> set[str]:
-        return set(findall(pattern=r"@\w+", string=self.body))
+    def usertags(self) -> list[str]:
+        return sorted(list(set(findall(pattern=r"@\w+", string=self.body))))
 
     @property
-    def hashtags(self) -> set[str]:
-        return set(findall(pattern=r"#\w+", string=self.body))
+    def hashtags(self) -> list[str]:
+        return sorted(list(set(findall(pattern=r"#\w+", string=self.body))))
 
     @property
-    def tags(self) -> set[str]:
-        return self.usertags | self.hashtags
+    def tags(self) -> list[str]:
+        return self.usertags + self.hashtags
 
     def author_global_usertag(self, usertag_mapping: dict[str, str]) -> str:
         return usertag_mapping[self.author_local_usertag]
@@ -50,11 +50,11 @@ class ConversationNode:
 
         return body
 
-    def globalised_usertags(self, usertag_mapping: dict[str, str]) -> set[str]:
-        return {usertag_mapping[usertag] for usertag in self.usertags}
+    def globalised_usertags(self, usertag_mapping: dict[str, str]) -> list[str]:
+        return [usertag_mapping[usertag] for usertag in self.usertags]
 
-    def globalised_tags(self, usertag_mapping: dict[str, str]) -> set[str]:
-        return self.globalised_usertags(usertag_mapping) | self.hashtags
+    def globalised_tags(self, usertag_mapping: dict[str, str]) -> list[str]:
+        return self.globalised_usertags(usertag_mapping) + self.hashtags
 
 
 class Conversation:
@@ -96,38 +96,38 @@ class Conversation:
         return self.root.author_local_usertag
 
     @property
-    def comment_authors(self) -> set[str]:
-        return {node.author_local_usertag for node in self.nodes if node is not self.root}
+    def comment_authors(self) -> list[str]:
+        return sorted(list({node.author_local_usertag for node in self.nodes if node is not self.root}))
 
     @property
-    def participants(self) -> set[str]:
-        return self.comment_authors | {self.root_author}
+    def participants(self) -> list[str]:
+        return sorted(list(set(self.comment_authors) | {self.root_author}))
 
     @property
-    def commenters(self) -> set[str]:
-        return self.comment_authors - {self.root_author}
+    def commenters(self) -> list[str]:
+        return sorted(list(set(self.comment_authors) - {self.root_author}))
 
     @property
-    def usertags(self) -> set[str]:
+    def usertags(self) -> list[str]:
         tags = set()
 
         for node in self.nodes:
-            tags |= node.usertags
+            tags |= set(node.usertags)
 
-        return tags
+        return sorted(list(tags))
 
     @property
-    def hashtags(self) -> set[str]:
+    def hashtags(self) -> list[str]:
         tags = set()
 
         for node in self.nodes:
-            tags |= node.hashtags
+            tags |= set(node.hashtags)
 
-        return tags
+        return sorted(list(tags))
 
     @property
-    def tags(self) -> set[str]:
-        return self.usertags | self.hashtags
+    def tags(self) -> list[str]:
+        return self.usertags + self.hashtags
 
     @classmethod
     def from_json(cls, json_rep: dict[str, Any], parent_type: PostType | Literal["comment"], parent_id: str = None) -> Self:

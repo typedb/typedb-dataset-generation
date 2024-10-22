@@ -706,7 +706,7 @@ class QueryBuilder:
         if posting_type not in ["person-self", "person-group"]:
             raise NotImplementedError()
 
-        if len(conversation.usertags - conversation.participants) != 0:
+        if len(set(conversation.usertags) - set(conversation.participants)) != 0:
             raise RuntimeError("Conversation has non-participants tagged.")
 
         commenter_count = len(conversation.commenters)
